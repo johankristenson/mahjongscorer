@@ -1,0 +1,1 @@
+keep track of mahjong scores over different players and games.

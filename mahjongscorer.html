@@ -1,0 +1,101 @@
+<head>
+  <title>mahjongscorer</title>
+</head>
+
+<body>
+	<div class="outer">
+		{{> loadgames}}
+		
+		{{> scoring}}
+
+	</div>
+</body>
+<template name="loadgames">
+	<table><tr>
+	<td><div class='menu' id='new_game' >New game
+		<button type="button" id='but1' class="noofplayers">2</button><button type="button" class="noofplayers">3</button><button type="button" class="noofplayers" >4</button><button type="button" class="noofplayers">5</button>
+		</div>
+		</td>
+		<td><div class='menu' id='load_game' >Load game</div></td>
+		<td>
+		{{#if hasActiveScoreboard}}	
+			<div class='info'  contenteditable="true" >{{currentgame}}</div>
+		{{else}}
+			<div class='info' >{{currentgame}}</div>		
+		{{/if}}
+		</td>
+	</tr></table>
+		<div class="gamenames">
+			<table>
+				<tr><th class="tableheaderrow">
+					<table><tr>
+						<th class="tableheadername">Name</th>
+						<th class="tableheaderclose">X</th>
+					</tr></table>
+				
+				
+				</th></tr>
+
+				{{#each listgamestoload}}
+					<tr>
+					<td>
+					<span class="gametoload" id="{{scoreId}}">{{gameName}}</span>
+					</td>
+					</tr>						
+				{{/each}}
+			</table>
+		</div>
+
+</template>
+<template name="scoring">
+
+			<table class='scoretable'>
+			<tr>
+				<th></th>
+				{{#each getPlayerNames}}
+					<th class='cell'><div contenteditable="true" class='playername' id="playername{{number}}">{{name}}</div>
+					</th>
+				{{/each}}
+			</tr>
+			
+			
+			{{#each getScores}}
+			<tr>
+				<td >
+					Round {{this.round}}
+					W{{this.winner}}
+					R{{this.risktaker}}
+				</td>
+				 {{#each this.score}}
+				 <td class='cell'>
+					{{this}}
+				 </td>
+				 {{/each}}
+			</tr>
+			<tr class='sum'>
+				<td></td>
+				{{#each playerSum this.round }}
+				<td >Sum: {{this}}
+				</td>
+				{{/each}}
+			</tr>
+			{{/each}}		
+	<tr>
+		<td>
+			<div class="scoreboardinput" id='addScores'><input type="button" value="lagg till" class="addData"> </div>			
+		</td>
+		{{#each getPlayerNames}}
+			<td class='cell'>
+				<div class="scoreboardinput">
+					<input type="radio" id='winner{{number}}' name="winner" value="winner">winner
+					<input type="radio" id='risktaker{{number}}' name="risktaker" value="risktaker">risktaker
+					<input type="text" id="player{{number}}score" class="score" maxlength=4>
+				</div>
+			</td>
+		{{/each}}
+	</tr>
+		</table>
+
+
+</template>
+	
