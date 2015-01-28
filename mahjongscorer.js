@@ -1,5 +1,6 @@
 //todo
-
+// kunna ta bort en inlagd rad
+// berakna trolig scor for ovriga spelare pa en rad baserat pa inmatade varden nar winner och loser ar iklickade ska det racka att fylla i vardet pa ett stalle.
 // Done:
 // rev17 > fix Template.scoring.getPlayerArray, see http://stackoverflow.com/questions/9544391/mustache-or-handlebars-iterating-over-two-lists needed to have editable divs for the player names with dynamic ids using each getPlayerArray instead of each getPlayerNameArray
 
@@ -21,6 +22,7 @@ Games = new Meteor.Collection("games");
 
 // todo. get and set game id to store as column next to round for the scores and for the players.
 if (Meteor.isClient) {
+	var triggerScoreInput = new Deps.Dependency;
 	var isNumber = function(n) {
 	return !isNaN(parseFloat(n)) && isFinite(n);
 	};
@@ -115,19 +117,20 @@ if (Meteor.isClient) {
 		}
 		return;
 	};
-
-	// for now just add the default players. 
-	// later add chosen players from a selection or input.
-	/*
-	addPlayers = function(){
-		console.log('addPlayers start johan oscar thomas daniel.');
-		Scores.update(
-			{ _id: get_Id() },
-            { players: ['johan','oscar','thomas','daniel']}
-        );
-		console.log('addPlayers end johan oscar thomas daniel.');
+	
+	var risktakerNumTrigger = -1;
+	// cellNumber: -1	=> true for risktakerNumTrigger >=0 (ie, a risktaker has been set)
+	// cellNumber: >=0	=> true for risktakerNumTrigger == cellNumbe (ie, player=risktaker)
+//	Template.scoring.enterScoreEnabled = function(cellNumber) {
+	Template.scoring.enterScoreEnabled = function() {
+		return risktakerNumTrigger>=0;
+		/*if(cellNumber >= 0){
+			triggerScoreInput.depend();
+			return cellNumber==risktakerNumTrigger;
+ 		} else {
+			return risktakerNumTrigger>=0;
+		}*/
 	};
-	*/
 
 	function FormatNumberLength(num, length) {
 		var r = "" + num;
@@ -234,7 +237,53 @@ if (Meteor.isClient) {
 			Scores.update({_id:scoreId},{$set:{gameName:str}}); // todo. remove gameName field from Scores?		
 		}
 	});
+
+	// distribute the entered score	
+	var distributeHandPoints = function(){
+		var basescore=parseInt($('input#handscore').val());
+		// risktaker and winner must be selected first to help score distribution
+		var win = $("input[name=winner]:checked");
+		var risk = $("input[name=risktaker]:checked");
+		if((basescore>0 || basescore<0) && win!=='undefined' && risk!=='undefined'){
+			console.log('distributing base score: %s',basescore);
+			var winnernum = win.attr("id").slice(-1);
+			var risktakernum = risk.attr("id").slice(-1);
+			var winnerscore=0;
+			var risktakerscore=0;			
+			var playerscore=0;
+			var numPlayers = Scores.findOne({}).players.length;
+			if (risktakernum==winnernum) {
+				if (basescore>=0) {
+					// selfdraw
+					winnerscore= (8+basescore)*numPlayers;
+					playerscore= -(8+basescore);
+				} else {
+					// penalty. "winner" is penalized for wrong mahjong or similar.
+					winnerscore= (basescore)*numPlayers;
+					playerscore= -(basescore);
+				}
+			} else {
+				// normal scoring hand. no selfdraw or false mahjong.
+				winnerscore = basescore + 8*numPlayers;
+				risktakerscore= -(8+basescore);
+				playerscore= -8;
+			}				
 	
+			for(var i =1;i<=numPlayers;i++){
+				console.log("distributing score, looping. i = "+i);
+				var givescore='';
+				if(winnernum==i) {
+					givescore= winnerscore.toString();
+				} else if(risktakernum==i) {
+					givescore= risktakerscore.toString();
+				} else {
+					givescore= playerscore.toString();
+				}
+				$("div#player"+i.toString()+"score").text(givescore);
+			} 
+		}
+	};
+
 	Template.scoring.events({
 		'blur div.playername':function(e){						
 			var newname = $(e.target).html().trim();
@@ -250,27 +299,27 @@ if (Meteor.isClient) {
 			console.log("_id for game: "+get_Id());
 			if (Scores.find().count()!=1 ){
 				console.log("A game was not found!");
+				alert('No ongoing game was found.');
 				return;
 			}
 			var playerScore = Array();
 			var numPlayers = Scores.findOne({}).players.length;
 			var totalScore = 0;
 			for(var i =0;i<numPlayers;i++){
-				console.log("looping. i = "+i);
-				var str = 'input#player'+(i+1)+'score';
-				var s = parseInt($(str).val());
+// ----------------------------------------
+// add calc of score per player based on hand score and risktaker/winner here.
+// ----------------------------------------
+				var str = $('div#player'+(i+1)+'score').text();
+				var s = parseInt(str);
 				playerScore[i] = s;
 				totalScore += s;
+				console.log("looping. i %i,str %s,s %i, totalScore %i ",i,str,s,totalScore);
 			}
 			var winnernum = $("input[name=winner]:checked").attr("id").slice(-1);
 			var risktakernum = $("input[name=risktaker]:checked").attr("id").slice(-1);			
 			if (isNumber(totalScore) && totalScore == 0 && typeof winnernum !== 'undefined') {
-				/*var winner= Array(numPlayers);
-				winner[winnernum]=true;
-				var risktaker = Array(numPlayers);*/
 				winner = winnernum;
 				if (typeof risktakernum !== 'undefined'){
-					//risktaker[risktakernum]=true;
 					risktaker = risktakernum;
 				}
 				var r = getLatestRound();
@@ -280,19 +329,59 @@ if (Meteor.isClient) {
 				// add an array of players scores to the data holder
 				Scores.update(
 					{ _id: get_Id() },
-                    { $push: {data: { winner: winner, risktaker:risktaker, round:r, score: playerScore  } }}
-                );
+					{ $push: {data: { winner: winner, risktaker:risktaker, round:r, score: playerScore  } }}
+				);
+				// uncheck radiobuttons
+				$("input[name=winner]:checked").prop('checked', false);
+				$("input[name=risktaker]:checked").prop('checked', false);
 			} else {
-				console.log('error : score must balance. ('+score+') not possible to add.');
+				console.log('error : score must balance. ('+totalScore+') does not.');
+				alert('score must balance. ('+totalScore+') does not.');
 			}
 		},
+		'keyup handscore.score': function(e, templ){
+			// remove last entered character if the string is no longer a valid number
+			// enter hand value of winner (negative value in case of falsely declaring mahjong)
+			var str = $(e.target).val();
+			// only allow numbers in the input field
+			if(str!='-' && !isNumber(str) ) {	
+				//console.log('not a nubmer '+str);
+				$(e.target).val(str.substring(0, str.length-1));
+			}
+			// distribute the score
+			var basescore=parseInt($(e.target).val());
+
+			distributeHandPoints();
+		},
+		/* anvands ej langre */
 		'keyup input.score': function(e, templ){
 			// remove last entered character if the string is no longer a valid number
+			// it is only possible to enter data for the winner due to risktakerNumTrigger=winnernum. 
+			// the winner can only have a positive number (or negative in case of falsely declaring mahjong)
 			var str = $(e.target).val();
 			if(str!='-' && !isNumber(str) ) {	
 				//console.log('not a nubmer '+str);
 				$(e.target).val(str.substring(0, str.length-1));
 			}
+		},
+		// recalculates scores after selecting both a winner and a risktaker
+		'click input.radiobutton': function(e,templ){
+			console.log('clicked radiobutton:' +$(e.target).val());
+			//console.log($("input[name=winner]:checked").attr("id"));
+			//console.log($("input[name=risktaker]:checked").attr("id"));
+			// risktaker and winner must be selected first to help score distribution
+			var winnerbutton = $("input[name=winner]:checked");
+			var risktakerbutton = $("input[name=risktaker]:checked");;	
+			if (!(winnerbutton=='undefined' || risktakerbutton=='undefined')) {
+				var winnernum = winnerbutton.attr("id").slice(-1);
+				var risktakernum = risktakerbutton.attr("id").slice(-1);
+				risktakerNumTrigger=parseInt(risktakernum);		
+				triggerScoreInput.changed(); // trigger reload of page for input of scores
+				// both the winner and the risktaker are set. 
+				distributeHandPoints();
+			}
+		
+
 		},
 		'keyup div.playername': function(e, templ){
 			//var str = $(e.target).val();
@@ -303,6 +392,7 @@ if (Meteor.isClient) {
 		}
 
 	});
+	
 }
 
 if (Meteor.isServer) {

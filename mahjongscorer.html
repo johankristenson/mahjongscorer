@@ -82,19 +82,20 @@
 			{{/each}}		
 	<tr>
 		<td>
-			<div class="scoreboardinput" id='addScores'><input type="button" value="lagg till" class="addData"> </div>			
+			<div class="scoreboardinput" id='addScores'><input type="button" value="lagg till" class="addData"> 
+			<span>Hand score: </span><input type="text" id="handscore" class="handscore" maxlength=4></div>
 		</td>
 		{{#each getPlayerNames}}
 			<td class='cell'>
 				<div class="scoreboardinput">
-					<input type="radio" id='winner{{number}}' name="winner" value="winner">winner
-					<input type="radio" id='risktaker{{number}}' name="risktaker" value="risktaker">risktaker
-					<input type="text" id="player{{number}}score" class="score" maxlength=4>
+					<input type="radio" id='winner{{number}}' name="winner" value="winner" class="radiobutton">winner
+					<input type="radio" id='risktaker{{number}}' name="risktaker" value="risktaker" class="radiobutton">risktaker
+					<div id="player{{number}}score" class="score"> 0 </div>
 				</div>
 			</td>
 		{{/each}}
 	</tr>
-		</table>
+	</table>
 
 
 </template>
