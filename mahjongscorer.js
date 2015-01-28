@@ -7,16 +7,16 @@
 // {player1:"Oscar", player2:"Thomas K",player3:"johan k",player4:'Daniel U',GameDate: "2014-05-14 10:00",  {round:1, player1score:-1,player2score:1,player3score:0,player4score:0}, {round:2, player1score:-1,player2score:1,player3score:0,player4score:0} }
 // {gameId, gameName, player1:"Oscar", player2:"Thomas K",player3:"johan k",player4:'Daniel U', GameDate: "2014-05-14 10:00", {rounds: {round:1, player1score:-1,player2score:1,player3score:0,player4score:0}, {round:2, player1score:-1,player2score:1,player3score:0,player4score:0} }}
 // {gameId, gameName, players:{"Oscar", "Thomas K","johan k",'Daniel U'}, GameDate: "2014-05-14 10:00", {rounds: {round:1, player1score:-1,player2score:1,player3score:0,player4score:0}, {round:2, player1score:-1,player2score:1,player3score:0,player4score:0} }}
-Scores = new Meteor.Collection("scores"); 
-Games = new Meteor.Collection("games"); 
+Scores = new Meteor.Collection("scores");
+Games = new Meteor.Collection("games");
 /*
  * first time game insert
  * Scores.insert({gameId: getGameId(), data:[]});
- * 
+ *
  * vid lagg till rad
  * Scores.update({_id:get_Id()},{$addToSet: { data: {round:r, score1:pl1score, score2:pl2score, score3:pl3score ,score4:pl4score}});
- * 
- * get scores for round r 
+ *
+ * get scores for round r
  * Scores.find({_id:get_Id(), 'data.round':r},{'data.$':1});
 */
 
@@ -34,9 +34,9 @@ if (Meteor.isClient) {
 			//Scores.findOne({_id:Session.get("SubscribeToId")});
 		}
     });
-    
-	// save reference to be able to use stop and ready 
-	Meteor.subscribe('gameIds',true);    
+
+	// save reference to be able to use stop and ready
+	Meteor.subscribe('gameIds',true);
 	
 	Template.loadgames.hasActiveScoreboard = function() {
 		return Scores.find({}).count()==1;
@@ -142,10 +142,10 @@ if (Meteor.isClient) {
 	
 	getGameName = function(numPlayers){
 		// change this later
-		var currentdate = new Date(); 
-		var datetime = numPlayers+" player game from " + FormatNumberLength(currentdate.getFullYear(),2)+'-'+ FormatNumberLength(currentdate.getMonth()+1,2) +'-'+ FormatNumberLength(currentdate.getDate(),2) + " @ "  
-                + FormatNumberLength(currentdate.getHours(),2) + ":"  
-                + FormatNumberLength(currentdate.getMinutes(),2) + ":" 
+		var currentdate = new Date();
+		var datetime = numPlayers+" player game from " + FormatNumberLength(currentdate.getFullYear(),2)+'-'+ FormatNumberLength(currentdate.getMonth()+1,2) +'-'+ FormatNumberLength(currentdate.getDate(),2) + " @ "
+                + FormatNumberLength(currentdate.getHours(),2) + ":"
+                + FormatNumberLength(currentdate.getMinutes(),2) + ":"
                 + FormatNumberLength(currentdate.getSeconds(),2);
 		return datetime;
 	};
@@ -173,15 +173,15 @@ if (Meteor.isClient) {
 	newScoreboard = function (numPlayers){
 		var currentdate = new Date();
 		var gid = "" + currentdate.getDate()
-			+ (currentdate.getMonth()+1)  +  
-			+ currentdate.getFullYear() +  
-			+ currentdate.getHours() +   
+			+ (currentdate.getMonth()+1)  +
+			+ currentdate.getFullYear() +
+			+ currentdate.getHours() +
 			+ currentdate.getMinutes() +
 			+ currentdate.getSeconds();
-		var gname = getGameName(numPlayers); 
+		var gname = getGameName(numPlayers);
 		// todo, get sfrom html textboxes
 		var gplayers = ["Johan Kristenson", "Daniel Udd","Oscar Lindberg","Thomas Krantz","Erik Hemberg","Martin Hemberg", "Klaus Nolås"].sort(function() {return .5 - Math.random();}).slice(0,numPlayers);
-		// unsubscribe to old scoreboard and subscribe to new 
+		// unsubscribe to old scoreboard and subscribe to new
 		Meteor.subscribe('scores');
 		g_id = Scores.insert({gameName: gname, players:gplayers, data:[]}, function(err, id){console.log("error insert: id of scores.insert: "+id+"   "+err);});
 		Games.insert({gameName: gname, scoreId:g_id},function(err, id){console.log("error insert: id of Games.insert: "+id+"   "+err);});
@@ -211,7 +211,7 @@ if (Meteor.isClient) {
 		},
 		'click span.gametoload':function(e){
 			// hide the game list menu after clicking on a game to load
-			// id of object was set to be same as _id of game document in mongo collection. 
+			// id of object was set to be same as _id of game document in mongo collection.
 			myid = $(e.target).attr('id');
 			var id = myid;
 			console.log(id);
@@ -255,16 +255,16 @@ if (Meteor.isClient) {
 			if (risktakernum==winnernum) {
 				if (basescore>=0) {
 					// selfdraw
-					winnerscore= (8+basescore)*numPlayers;
+					winnerscore= (8+basescore)*(numPlayers-1);
 					playerscore= -(8+basescore);
 				} else {
 					// penalty. "winner" is penalized for wrong mahjong or similar.
-					winnerscore= (basescore)*numPlayers;
+					winnerscore= (basescore)*(numPlayers-1);
 					playerscore= -(basescore);
 				}
 			} else {
 				// normal scoring hand. no selfdraw or false mahjong.
-				winnerscore = basescore + 8*numPlayers;
+				winnerscore = basescore + 8*(numPlayers-1);
 				risktakerscore= -(8+basescore);
 				playerscore= -8;
 			}				
@@ -280,7 +280,7 @@ if (Meteor.isClient) {
 					givescore= playerscore.toString();
 				}
 				$("div#player"+i.toString()+"score").text(givescore);
-			} 
+			}
 		}
 	};
 
@@ -356,7 +356,7 @@ if (Meteor.isClient) {
 		/* anvands ej langre */
 		'keyup input.score': function(e, templ){
 			// remove last entered character if the string is no longer a valid number
-			// it is only possible to enter data for the winner due to risktakerNumTrigger=winnernum. 
+			// it is only possible to enter data for the winner due to risktakerNumTrigger=winnernum.
 			// the winner can only have a positive number (or negative in case of falsely declaring mahjong)
 			var str = $(e.target).val();
 			if(str!='-' && !isNumber(str) ) {	
@@ -377,7 +377,7 @@ if (Meteor.isClient) {
 				var risktakernum = risktakerbutton.attr("id").slice(-1);
 				risktakerNumTrigger=parseInt(risktakernum);		
 				triggerScoreInput.changed(); // trigger reload of page for input of scores
-				// both the winner and the risktaker are set. 
+				// both the winner and the risktaker are set.
 				distributeHandPoints();
 			}
 		
@@ -404,7 +404,7 @@ if (Meteor.isServer) {
 				//stop subscription
 				return this.stop();
 			}
-		});    
+		});
 		Meteor.publish('scores',function(id){
 			if(id){
 				return Scores.find({_id:id});
