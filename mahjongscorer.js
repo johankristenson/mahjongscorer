@@ -118,6 +118,7 @@ if (Meteor.isClient) {
 
 	// for now just add the default players. 
 	// later add chosen players from a selection or input.
+	/*
 	addPlayers = function(){
 		console.log('addPlayers start johan oscar thomas daniel.');
 		Scores.update(
@@ -126,7 +127,8 @@ if (Meteor.isClient) {
         );
 		console.log('addPlayers end johan oscar thomas daniel.');
 	};
-	
+	*/
+
 	function FormatNumberLength(num, length) {
 		var r = "" + num;
 		while (r.length < length) {
@@ -287,7 +289,7 @@ if (Meteor.isClient) {
 		'keyup input.score': function(e, templ){
 			// remove last entered character if the string is no longer a valid number
 			var str = $(e.target).val();
-			if(!isNumber(str)) {	
+			if(str!='-' && !isNumber(str) ) {	
 				//console.log('not a nubmer '+str);
 				$(e.target).val(str.substring(0, str.length-1));
 			}
