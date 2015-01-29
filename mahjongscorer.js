@@ -118,7 +118,6 @@ if (Meteor.isClient) {
 			}
 			return total;
 		},
-
 		/// return array of rounds from document in the order they were stored
 		getScores: function () {
 			if(typeof Scores.findOne({_id:get_Id()}) !== 'undefined') {
@@ -398,7 +397,7 @@ if (Meteor.isClient) {
 			return Session.get("showMahjongScorecard");
 		}
 	});
-	var DELAY=400,clicks=0; timer=null;
+	var DELAY=500,clicks=0; timer=null;
 	Template.scorecard.events({
 		'click .onepoint': function (e,templ) {
 			// one pointers can be cliked more than once to increase total points. 
@@ -420,6 +419,7 @@ if (Meteor.isClient) {
 						basescore += parseInt($(e.target).attr('points'));
 						$('input#handscore').val(basescore);
 						clicks = 0;             //after action performed, reset counter
+						distributeHandPoints();
 					}, DELAY);
 				} else {
 					// double click, subtract points from base scores
@@ -428,8 +428,9 @@ if (Meteor.isClient) {
 					if(!isFinite(basescore)) basescore=0;
 					console.log('subtracting score: %s',$(e.target).attr('points'));
 					basescore -= parseInt($(e.target).attr('points'));
-					$('input#handscore').val(basescore);
+					setHandPoints(basescore);
 					clicks = 0;             //after action performed, reset counter
+					distributeHandPoints();
 				}								
 			} else {
 				// non left click => subtract points from base score
@@ -437,10 +438,15 @@ if (Meteor.isClient) {
 				if(!isFinite(basescore)) basescore=0;
 				console.log('subtracting score: %s',$(e.target).attr('points'));
 				basescore -= parseInt($(e.target).attr('points'));
-				$('input#handscore').val(basescore);
-
+				setHandPoints(basescore);
+				distributeHandPoints();
 			}
 		},
+		'touchstart .pickpoints':function(e,templ){
+			console.log('touch event on pickpoints class');
+			
+		},
+// highlight points by hovering
 		'mouseover area.pickpoints':function(e,templ) {
 			$(e.target).focus();
 		},
