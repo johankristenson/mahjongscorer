@@ -23,6 +23,11 @@ Games = new Meteor.Collection("games");
 // todo. get and set game id to store as column next to round for the scores and for the players.
 if (Meteor.isClient) {
 	var triggerScoreInput = new Deps.Dependency;
+/*	var showMahjongScorecard=false;
+	var showMahjongScorecardTrigger = new Deps.Dependency;			
+*/
+	Session.setDefault("showMahjongScorecard",false);
+
 	var isNumber = function(n) {
 	return !isNaN(parseFloat(n)) && isFinite(n);
 	};
@@ -38,20 +43,23 @@ if (Meteor.isClient) {
 	// save reference to be able to use stop and ready 
 	Meteor.subscribe('gameIds',true);    
 	
-	Template.loadgames.hasActiveScoreboard = function() {
-		return Scores.find({}).count()==1;
-	};
-	// return name of current game.
-	Template.loadgames.currentgame = function() {
-		var gc = Scores.find({}).count();
-		if ( gc==1){
-			return Scores.find({},{fields:{gameName:1}}).fetch()[0].gameName;
-		} else if (gc>1) {
-			return "Error: more than one active scoreboard.";
-		} else {
-			return "No active scoreboard. Load a scoreboard or start a new one";
+	Template.loadgames.helpers({
+		hasActiveScoreboard: function() {
+			return Scores.find({}).count()==1;
+		},
+	
+		// return name of current game.
+		currentgame: function() {
+			var gc = Scores.find({}).count();
+			if ( gc==1){
+				return Scores.find({},{fields:{gameName:1}}).fetch()[0].gameName;
+			} else if (gc>1) {
+				return "Error: more than one active scoreboard.";
+			} else {
+				return "No active scoreboard. Load a scoreboard or start a new one";
+			}
 		}
-	};
+	});
 	// return game names and ids
 	Template.loadgames.listgamestoload = function() {
 		return Games.find({},{scoreId:1,gameName:1});
@@ -283,7 +291,6 @@ if (Meteor.isClient) {
 			} 
 		}
 	};
-
 	Template.scoring.events({
 		'blur div.playername':function(e){						
 			var newname = $(e.target).html().trim();
@@ -306,9 +313,9 @@ if (Meteor.isClient) {
 			var numPlayers = Scores.findOne({}).players.length;
 			var totalScore = 0;
 			for(var i =0;i<numPlayers;i++){
-// ----------------------------------------
-// add calc of score per player based on hand score and risktaker/winner here.
-// ----------------------------------------
+				// ----------------------------------------
+				// add calc of score per player based on hand score and risktaker/winner here.
+				// ----------------------------------------
 				var str = $('div#player'+(i+1)+'score').text();
 				var s = parseInt(str);
 				playerScore[i] = s;
@@ -349,20 +356,7 @@ if (Meteor.isClient) {
 				$(e.target).val(str.substring(0, str.length-1));
 			}
 			// distribute the score
-			var basescore=parseInt($(e.target).val());
-
 			distributeHandPoints();
-		},
-		/* anvands ej langre */
-		'keyup input.score': function(e, templ){
-			// remove last entered character if the string is no longer a valid number
-			// it is only possible to enter data for the winner due to risktakerNumTrigger=winnernum. 
-			// the winner can only have a positive number (or negative in case of falsely declaring mahjong)
-			var str = $(e.target).val();
-			if(str!='-' && !isNumber(str) ) {	
-				//console.log('not a nubmer '+str);
-				$(e.target).val(str.substring(0, str.length-1));
-			}
 		},
 		// recalculates scores after selecting both a winner and a risktaker
 		'click input.radiobutton': function(e,templ){
@@ -382,6 +376,10 @@ if (Meteor.isClient) {
 			}
 		
 
+		},
+		'click img.scorecard': function(e, templ){
+			Session.set("showMahjongScorecard",!Session.get("showMahjongScorecard"));
+			console.log('clicked thumbnail. trigger: %s',showMahjongScorecard);			
 		},
 		'keyup div.playername': function(e, templ){
 			//var str = $(e.target).val();

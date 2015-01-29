@@ -8,6 +8,7 @@
 		
 		{{> scoring}}
 
+		{{> scorecard}}
 	</div>
 </body>
 <template name="loadgames">
@@ -83,7 +84,7 @@
 	<tr>
 		<td>
 			<div class="scoreboardinput" id='addScores'><input type="button" value="lagg till" class="addData"> 
-			<span>Hand score: </span><input type="text" id="handscore" class="handscore" maxlength=4></div>
+			<span>Hand score: </span><input type="text" id="handscore" class="score" maxlength=4><img src='/mahjongscorecard_thumb.png' id='scorecard' class='scorecard'/></div>
 		</td>
 		{{#each getPlayerNames}}
 			<td class='cell'>
@@ -96,7 +97,13 @@
 		{{/each}}
 	</tr>
 	</table>
-
-
+</template>
+<template name="scorecard">
+	{{#if showmahjongscorecard}}
+		<div class="imgframe">
+		<img src='/mahjongscorecard.png' class='scorecard'/>
+		</div>
+	{{else}}
+	{{/if}}
 </template>
 	
