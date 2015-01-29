@@ -23,9 +23,6 @@ Games = new Meteor.Collection("games");
 // todo. get and set game id to store as column next to round for the scores and for the players.
 if (Meteor.isClient) {
 	var triggerScoreInput = new Deps.Dependency;
-/*	var showMahjongScorecard=false;
-	var showMahjongScorecardTrigger = new Deps.Dependency;			
-*/
 	Session.setDefault("showMahjongScorecard",false);
 
 	var isNumber = function(n) {
@@ -58,6 +55,8 @@ if (Meteor.isClient) {
 			} else {
 				return "No active scoreboard. Load a scoreboard or start a new one";
 			}
+			Session.set("showMahjongScorecard",false);
+
 		}
 	});
 	// return game names and ids
@@ -76,69 +75,71 @@ if (Meteor.isClient) {
 		console.log("numplayers: "+ret.length);
 		return ret;
 	};*/
-	/// return array of players and their start order
-	Template.scoring.getPlayerNames = function(){
-		if (typeof Scores === 'undefined' || typeof Scores.findOne() === 'undefined') {
-			return 0;
-		}
-		// get subscribed documents that have players (ie those subscriptions that only have _ids in order to list the games)
-		var ret = Array();
-		var playernames = Scores.findOne({}).players;
-		for (var i =0; i<playernames.length; i++){
-			var entry = { name: playernames[i], number: (i+1) };
-			ret[i] = entry;
-			console.log('added name and number for i='+i+" name= "+playernames[i]);
-		}
-		console.log('array length= '+ret.length);
-		return ret;
-	};
-	
-	Template.scoring.hasActiveScoreboard = function() {
-		return Scores.find({}).count()==1;
-	};
-	// sum player score for any player
-	// todo. how to access variable in local context using a string.
-	Template.scoring.playerSum = function(toRound){
-		// get toRound rounds starting from round 1 (ie index 0)
-		var dataArray = Scores.findOne().data.slice(0,toRound);
-		var numPlayers = dataArray[0].score.length;
-		var total = new Array(numPlayers);
-		var s = new Array(numPlayers);
-		for(var i=0;i < dataArray.length;i++){
-			for(var j=0; j < numPlayers; j++){
-				if(i==0) {
-					total[j]=0;
-				}
-				// score for player (j+1) for round (i+1)
-				s[j]=dataArray[i].score[j];
-				console.log(s[j]);
-				total[j]+= s[j];
-			}
-		}
-		return total;
-	};
-
-	/// return array of rounds from document in the order they were stored
-	Template.scoring.getScores = function () {
-		if(typeof Scores.findOne({_id:get_Id()}) !== 'undefined') {
-			return Scores.findOne({_id:get_Id()}, {'data.$': 1}).data;
-		}
-		return;
-	};
-	
 	var risktakerNumTrigger = -1;
-	// cellNumber: -1	=> true for risktakerNumTrigger >=0 (ie, a risktaker has been set)
-	// cellNumber: >=0	=> true for risktakerNumTrigger == cellNumbe (ie, player=risktaker)
-//	Template.scoring.enterScoreEnabled = function(cellNumber) {
-	Template.scoring.enterScoreEnabled = function() {
-		return risktakerNumTrigger>=0;
-		/*if(cellNumber >= 0){
-			triggerScoreInput.depend();
-			return cellNumber==risktakerNumTrigger;
- 		} else {
+	/// return array of players and their start order
+	Template.scoring.helpers({
+		getPlayerNames: function(){
+			if (typeof Scores === 'undefined' || typeof Scores.findOne() === 'undefined') {
+				return 0;
+			}
+			// get subscribed documents that have players (ie those subscriptions that only have _ids in order to list the games)
+			var ret = Array();
+			var playernames = Scores.findOne({}).players;
+			for (var i =0; i<playernames.length; i++){
+				var entry = { name: playernames[i], number: (i+1) };
+				ret[i] = entry;
+				console.log('added name and number for i='+i+" name= "+playernames[i]);
+			}
+			console.log('array length= '+ret.length);
+			return ret;
+		},
+	
+		hasActiveScoreboard: function() {
+			return Scores.find({}).count()==1;
+		},
+		// sum player score for any player
+		// todo. how to access variable in local context using a string.
+		playerSum: function(toRound){
+			// get toRound rounds starting from round 1 (ie index 0)
+			var dataArray = Scores.findOne().data.slice(0,toRound);
+			var numPlayers = dataArray[0].score.length;
+			var total = new Array(numPlayers);
+			var s = new Array(numPlayers);
+			for(var i=0;i < dataArray.length;i++){
+				for(var j=0; j < numPlayers; j++){
+					if(i==0) {
+						total[j]=0;
+					}
+					// score for player (j+1) for round (i+1)
+					s[j]=dataArray[i].score[j];
+					console.log(s[j]);
+					total[j]+= s[j];
+				}
+			}
+			return total;
+		},
+
+		/// return array of rounds from document in the order they were stored
+		getScores: function () {
+			if(typeof Scores.findOne({_id:get_Id()}) !== 'undefined') {
+				return Scores.findOne({_id:get_Id()}, {'data.$': 1}).data;
+			}
+			return;
+		},
+	
+		// cellNumber: -1	=> true for risktakerNumTrigger >=0 (ie, a risktaker has been set)
+		// cellNumber: >=0	=> true for risktakerNumTrigger == cellNumbe (ie, player=risktaker)
+	//	Template.scoring.enterScoreEnabled = function(cellNumber) {
+		enterScoreEnabled: function() {
 			return risktakerNumTrigger>=0;
-		}*/
-	};
+			/*if(cellNumber >= 0){
+				triggerScoreInput.depend();
+				return cellNumber==risktakerNumTrigger;
+	 		} else {
+				return risktakerNumTrigger>=0;
+			}*/
+		}
+	});
 
 	function FormatNumberLength(num, length) {
 		var r = "" + num;
@@ -380,7 +381,7 @@ if (Meteor.isClient) {
 		},
 		'click img.scorecard': function(e, templ){
 			Session.set("showMahjongScorecard",!Session.get("showMahjongScorecard"));
-			console.log('clicked thumbnail. trigger: %s',showMahjongScorecard);			
+			console.log('clicked thumbnail. trigger: %s',Session.get("showMahjongScorecard"));			
 		},
 		'keyup div.playername': function(e, templ){
 			//var str = $(e.target).val();
@@ -391,7 +392,71 @@ if (Meteor.isClient) {
 		}
 
 	});
+
+	Template.scorecard.helpers({
+		showmahjongscorecard: function () {
+			return Session.get("showMahjongScorecard");
+		}
+	});
+	Template.scorecard.events({
+		'click .onepoint': function (e,templ) {
+			// one pointers can be cliked more than once to increase total points. 
+			// right click decreases points, left click increases (up to 8 clicks then back to zero)
+			console.log('disable blur() for this area unless it is clicked again');
+			console.log('"'+e.target+'"');			
+		},
+		'click .pickpoints': function (e,templ) {
+			console.log('add points if left click, remove points if right click');
+			console.log('"'+e.target+'"');		
+			switch(e.button){
+				case 0: 
+					var basescore = parseInt($('input#handscore').val());
+					if(!isFinite(basescore)) basescore=0;
+					console.log('adding score: %s',$(e.target).attr('points'));
+					basescore += parseInt($(e.target).attr('points'));
+					$('input#handscore').val(basescore);
+					break;
+				// subtract score if right clicking or any other non-left clicking
+				default:
+					var basescore = parseInt($('input#handscore').val());
+					if(!isFinite(basescore)) basescore=0;
+					console.log('subtracting score: %s',$(e.target).attr('points'));
+					basescore -= parseInt($(e.target).attr('points'));
+					$('input#handscore').val(basescore);
+			}		
+								
+		},
+		'dblclick .pickpoints': function (e,templ) {
+			console.log('add points if left click, remove points if right click');
+			console.log('"'+e.target+'"');		
+			switch(e.button){
+				// subtract score if right clicking or any other non-left clicking
+				default:
+					var basescore = parseInt($('input#handscore').val());
+					if(!isFinite(basescore)) basescore=0;
+					console.log('subtracting score: 3*%s',$(e.target).attr('points'));
+					// I dont know how to disable the normal click event when doubleclicking, therefore 3*points subtraction
+					basescore -= 3*parseInt($(e.target).attr('points')); 
+					$('input#handscore').val(basescore);
+			}		
+								
+		},
+
+		'mouseover area.pickpoints':function(e,templ) {
+			$(e.target).focus();
+		},
+		'mouseout area.pickpoints':function(e,templ) {
+			$(e.target).blur();
+		}
+	});
 	
+	/*
+	var areas = document.getElementsByTagName( 'area' );
+	for( var index = 0; index < areas.length; index++ ) {    
+	    areas[index].addEventListener( 'mouseover', function () {this.focus();}, false );
+	    areas[index].addEventListener( 'mouseout', function () {this.blur();}, false );
+	};
+	*/
 }
 
 if (Meteor.isServer) {

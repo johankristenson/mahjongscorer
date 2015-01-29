@@ -37,7 +37,7 @@ td.cell, th.cell {
 }
 
 div.imgframe{
-	margin: 8px;
+	margin: 0px;
 	background: #99CC99;
 	border: 2px solid;
 	border-radius: 8px;
@@ -121,3 +121,6 @@ div.info {
 	width:100%;
 }
 
+.pickpoints {
+	outline: 2px solid black;
+} 

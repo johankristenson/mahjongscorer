@@ -99,11 +99,18 @@
 	</table>
 </template>
 <template name="scorecard">
-	{{#if showmahjongscorecard}}
 		<div class="imgframe">
-		<img src='/mahjongscorecard.png' class='scorecard'/>
+			<img src="/mahjongscorecard_1024.png"  usemap="#pointpicker" class='scorecard'/>
+			<map name="pointpicker" id="pointpicker">
+			    <area points='2'  class='pickpoints twopoints' id='dragonpung'  shape="rect" coords="225,32,302,51" />
+			    <area points='2'  class='pickpoints onepoint' id='prevailingwind'   shape="rect" coords="225,52,302,70" />
+			    <area points='2'  class='pickpoints onepoint' id='seatwind'   shape="rect" coords="225,71,302,88" />
+			    <area points='1'  class='pickpoints onepoint' id='puredoublechow'   shape="rect" coords="149,129,225,151" />
+			    <area points='1'  class='pickpoints onepoint' id='mixeddoublechow'   shape="rect" coords="149,152,225,175" />
+			</map>
 		</div>
+	{{#if showMahjongScorecard}}
 	{{else}}
 	{{/if}}
 </template>
-	
+
