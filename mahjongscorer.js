@@ -398,6 +398,7 @@ if (Meteor.isClient) {
 			return Session.get("showMahjongScorecard");
 		}
 	});
+	var DELAY=400,clicks=0; timer=null;
 	Template.scorecard.events({
 		'click .onepoint': function (e,templ) {
 			// one pointers can be cliked more than once to increase total points. 
@@ -408,40 +409,28 @@ if (Meteor.isClient) {
 		'click .pickpoints': function (e,templ) {
 			console.log('add points if left click, remove points if right click');
 			console.log('"'+e.target+'"');		
-			switch(e.button){
-				case 0: 
+			clicks++;
+			if(clicks === 1) {
+				// Single click
+				timer = setTimeout(function() {
 					var basescore = parseInt($('input#handscore').val());
 					if(!isFinite(basescore)) basescore=0;
 					console.log('adding score: %s',$(e.target).attr('points'));
 					basescore += parseInt($(e.target).attr('points'));
 					$('input#handscore').val(basescore);
-					break;
-				// subtract score if right clicking or any other non-left clicking
-				default:
-					var basescore = parseInt($('input#handscore').val());
-					if(!isFinite(basescore)) basescore=0;
-					console.log('subtracting score: %s',$(e.target).attr('points'));
-					basescore -= parseInt($(e.target).attr('points'));
-					$('input#handscore').val(basescore);
-			}		
-								
+					clicks = 0;             //after action performed, reset counter
+				}, DELAY);
+			} else {
+				// double click
+				clearTimeout(timer);    //prevent single-click action
+				var basescore = parseInt($('input#handscore').val());
+				if(!isFinite(basescore)) basescore=0;
+				console.log('subtracting score: %s',$(e.target).attr('points'));
+				basescore -= parseInt($(e.target).attr('points'));
+				$('input#handscore').val(basescore);
+				clicks = 0;             //after action performed, reset counter
+			}								
 		},
-		'dblclick .pickpoints': function (e,templ) {
-			console.log('add points if left click, remove points if right click');
-			console.log('"'+e.target+'"');		
-			switch(e.button){
-				// subtract score if right clicking or any other non-left clicking
-				default:
-					var basescore = parseInt($('input#handscore').val());
-					if(!isFinite(basescore)) basescore=0;
-					console.log('subtracting score: 3*%s',$(e.target).attr('points'));
-					// I dont know how to disable the normal click event when doubleclicking, therefore 3*points subtraction
-					basescore -= 3*parseInt($(e.target).attr('points')); 
-					$('input#handscore').val(basescore);
-			}		
-								
-		},
-
 		'mouseover area.pickpoints':function(e,templ) {
 			$(e.target).focus();
 		},
