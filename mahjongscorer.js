@@ -428,7 +428,7 @@ if (Meteor.isClient) {
 					if(!isFinite(basescore)) basescore=0;
 					console.log('subtracting score: %s',$(e.target).attr('points'));
 					basescore -= parseInt($(e.target).attr('points'));
-					setHandPoints(basescore);
+					$('input#handscore').val(basescore);
 					clicks = 0;             //after action performed, reset counter
 					distributeHandPoints();
 				}								
@@ -438,7 +438,7 @@ if (Meteor.isClient) {
 				if(!isFinite(basescore)) basescore=0;
 				console.log('subtracting score: %s',$(e.target).attr('points'));
 				basescore -= parseInt($(e.target).attr('points'));
-				setHandPoints(basescore);
+				$('input#handscore').val(basescore);
 				distributeHandPoints();
 			}
 		},
