@@ -409,27 +409,37 @@ if (Meteor.isClient) {
 		'click .pickpoints': function (e,templ) {
 			console.log('add points if left click, remove points if right click');
 			console.log('"'+e.target+'"');		
-			clicks++;
-			if(clicks === 1) {
-				// Single click
-				timer = setTimeout(function() {
+			if(e.button==0 /* left click */){
+				clicks++;
+				if(clicks === 1) {
+					// Single click, add points to base score
+					timer = setTimeout(function() {
+						var basescore = parseInt($('input#handscore').val());
+						if(!isFinite(basescore)) basescore=0;
+						console.log('adding score: %s',$(e.target).attr('points'));
+						basescore += parseInt($(e.target).attr('points'));
+						$('input#handscore').val(basescore);
+						clicks = 0;             //after action performed, reset counter
+					}, DELAY);
+				} else {
+					// double click, subtract points from base scores
+					clearTimeout(timer);    //prevent single-click action
 					var basescore = parseInt($('input#handscore').val());
 					if(!isFinite(basescore)) basescore=0;
-					console.log('adding score: %s',$(e.target).attr('points'));
-					basescore += parseInt($(e.target).attr('points'));
+					console.log('subtracting score: %s',$(e.target).attr('points'));
+					basescore -= parseInt($(e.target).attr('points'));
 					$('input#handscore').val(basescore);
 					clicks = 0;             //after action performed, reset counter
-				}, DELAY);
+				}								
 			} else {
-				// double click
-				clearTimeout(timer);    //prevent single-click action
+				// non left click => subtract points from base score
 				var basescore = parseInt($('input#handscore').val());
 				if(!isFinite(basescore)) basescore=0;
 				console.log('subtracting score: %s',$(e.target).attr('points'));
 				basescore -= parseInt($(e.target).attr('points'));
 				$('input#handscore').val(basescore);
-				clicks = 0;             //after action performed, reset counter
-			}								
+
+			}
 		},
 		'mouseover area.pickpoints':function(e,templ) {
 			$(e.target).focus();
