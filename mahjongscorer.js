@@ -39,9 +39,9 @@ if (Meteor.isClient) {
 			//Scores.findOne({_id:Session.get("SubscribeToId")});
 		}
     });
-    
-	// save reference to be able to use stop and ready 
-	Meteor.subscribe('gameIds',true);    
+
+	// save reference to be able to use stop and ready
+	Meteor.subscribe('gameIds',true);
 	
 	Template.loadgames.helpers({
 		hasActiveScoreboard: function() {
@@ -150,10 +150,10 @@ if (Meteor.isClient) {
 	
 	getGameName = function(numPlayers){
 		// change this later
-		var currentdate = new Date(); 
-		var datetime = numPlayers+" player game from " + FormatNumberLength(currentdate.getFullYear(),2)+'-'+ FormatNumberLength(currentdate.getMonth()+1,2) +'-'+ FormatNumberLength(currentdate.getDate(),2) + " @ "  
-                + FormatNumberLength(currentdate.getHours(),2) + ":"  
-                + FormatNumberLength(currentdate.getMinutes(),2) + ":" 
+		var currentdate = new Date();
+		var datetime = numPlayers+" player game from " + FormatNumberLength(currentdate.getFullYear(),2)+'-'+ FormatNumberLength(currentdate.getMonth()+1,2) +'-'+ FormatNumberLength(currentdate.getDate(),2) + " @ "
+                + FormatNumberLength(currentdate.getHours(),2) + ":"
+                + FormatNumberLength(currentdate.getMinutes(),2) + ":"
                 + FormatNumberLength(currentdate.getSeconds(),2);
 		return datetime;
 	};
@@ -181,9 +181,9 @@ if (Meteor.isClient) {
 	newScoreboard = function (numPlayers){
 		var currentdate = new Date();
 		var gid = "" + currentdate.getDate()
-			+ (currentdate.getMonth()+1)  +  
-			+ currentdate.getFullYear() +  
-			+ currentdate.getHours() +   
+			+ (currentdate.getMonth()+1)  +
+			+ currentdate.getFullYear() +
+			+ currentdate.getHours() +
 			+ currentdate.getMinutes() +
 			+ currentdate.getSeconds();
 		var gname = getGameName(numPlayers); 
@@ -263,16 +263,16 @@ if (Meteor.isClient) {
 			if (risktakernum==winnernum) {
 				if (basescore>=0) {
 					// selfdraw
-					winnerscore= (8+basescore)*numPlayers;
+					winnerscore= (8+basescore)*(numPlayers-1);
 					playerscore= -(8+basescore);
 				} else {
 					// penalty. "winner" is penalized for wrong mahjong or similar.
-					winnerscore= (basescore)*numPlayers;
+					winnerscore= (basescore)*(numPlayers-1);
 					playerscore= -(basescore);
 				}
 			} else {
 				// normal scoring hand. no selfdraw or false mahjong.
-				winnerscore = basescore + 8*numPlayers;
+				winnerscore = basescore + 8*(numPlayers-1);
 				risktakerscore= -(8+basescore);
 				playerscore= -8;
 			}				
@@ -288,9 +288,10 @@ if (Meteor.isClient) {
 					givescore= playerscore.toString();
 				}
 				$("div#player"+i.toString()+"score").text(givescore);
-			} 
+			}
 		}
 	};
+
 	Template.scoring.events({
 		'blur div.playername':function(e){						
 			var newname = $(e.target).html().trim();
@@ -402,7 +403,7 @@ if (Meteor.isServer) {
 				//stop subscription
 				return this.stop();
 			}
-		});    
+		});
 		Meteor.publish('scores',function(id){
 			if(id){
 				return Scores.find({_id:id});
