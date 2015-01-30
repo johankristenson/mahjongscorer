@@ -7,16 +7,16 @@
 // {player1:"Oscar", player2:"Thomas K",player3:"johan k",player4:'Daniel U',GameDate: "2014-05-14 10:00",  {round:1, player1score:-1,player2score:1,player3score:0,player4score:0}, {round:2, player1score:-1,player2score:1,player3score:0,player4score:0} }
 // {gameId, gameName, player1:"Oscar", player2:"Thomas K",player3:"johan k",player4:'Daniel U', GameDate: "2014-05-14 10:00", {rounds: {round:1, player1score:-1,player2score:1,player3score:0,player4score:0}, {round:2, player1score:-1,player2score:1,player3score:0,player4score:0} }}
 // {gameId, gameName, players:{"Oscar", "Thomas K","johan k",'Daniel U'}, GameDate: "2014-05-14 10:00", {rounds: {round:1, player1score:-1,player2score:1,player3score:0,player4score:0}, {round:2, player1score:-1,player2score:1,player3score:0,player4score:0} }}
-Scores = new Meteor.Collection("scores"); 
-Games = new Meteor.Collection("games"); 
+Scores = new Meteor.Collection("scores");
+Games = new Meteor.Collection("games");
 /*
  * first time game insert
  * Scores.insert({gameId: getGameId(), data:[]});
- * 
+ *
  * vid lagg till rad
  * Scores.update({_id:get_Id()},{$addToSet: { data: {round:r, score1:pl1score, score2:pl2score, score3:pl3score ,score4:pl4score}});
- * 
- * get scores for round r 
+ *
+ * get scores for round r
  * Scores.find({_id:get_Id(), 'data.round':r},{'data.$':1});
 */
 
@@ -186,10 +186,10 @@ if (Meteor.isClient) {
 			+ currentdate.getHours() +
 			+ currentdate.getMinutes() +
 			+ currentdate.getSeconds();
-		var gname = getGameName(numPlayers); 
+		var gname = getGameName(numPlayers);
 		// todo, get sfrom html textboxes
 		var gplayers = ["Johan Kristenson", "Daniel Udd","Oscar Lindberg","Thomas Krantz","Erik Hemberg","Martin Hemberg", "Klaus Nolås"].sort(function() {return .5 - Math.random();}).slice(0,numPlayers);
-		// unsubscribe to old scoreboard and subscribe to new 
+		// unsubscribe to old scoreboard and subscribe to new
 		Meteor.subscribe('scores');
 		g_id = Scores.insert({gameName: gname, players:gplayers, data:[]}, function(err, id){console.log("error insert: id of scores.insert: "+id+"   "+err);});
 		Games.insert({gameName: gname, scoreId:g_id},function(err, id){console.log("error insert: id of Games.insert: "+id+"   "+err);});
@@ -219,7 +219,7 @@ if (Meteor.isClient) {
 		},
 		'click span.gametoload':function(e){
 			// hide the game list menu after clicking on a game to load
-			// id of object was set to be same as _id of game document in mongo collection. 
+			// id of object was set to be same as _id of game document in mongo collection.
 			myid = $(e.target).attr('id');
 			var id = myid;
 			console.log(id);
@@ -372,7 +372,7 @@ if (Meteor.isClient) {
 				var risktakernum = risktakerbutton.attr("id").slice(-1);
 				risktakerNumTrigger=parseInt(risktakernum);		
 				triggerScoreInput.changed(); // trigger reload of page for input of scores
-				// both the winner and the risktaker are set. 
+				// both the winner and the risktaker are set.
 				distributeHandPoints();
 			}
 		
