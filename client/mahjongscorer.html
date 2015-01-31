@@ -1,0 +1,205 @@
+<head>
+  <title>mahjongscorer</title>
+</head>
+
+<body>
+	<div class="outer">
+
+		{{> loadgames}}
+		
+		{{> scoring}}
+
+		{{> scorecard}}
+	{{> loginButtons}}
+	</div>
+
+</body>
+<template name="loadgames">
+	<table><tr>
+	<td><div class='menu' id='new_game' >New game
+		<button type="button" id='but1' class="noofplayers">2</button><button type="button" class="noofplayers">3</button><button type="button" class="noofplayers" >4</button><button type="button" class="noofplayers">5</button>
+		</div>
+		</td>
+		<td><div class='menu' id='load_game' >Load game</div></td>
+		<td>
+		{{#if hasActiveScoreboard}}	
+			<div class='info'  contenteditable="true" >{{currentgame}}</div>
+		{{else}}
+			<div class='info' >{{currentgame}}</div>		
+		{{/if}}
+		</td>
+	</tr></table>
+		<div class="gamenames">
+			<table>
+				<tr><th class="tableheaderrow">
+					<table><tr>
+						<th class="tableheadername">Name</th>
+						<th class="tableheaderclose">X</th>
+					</tr></table>
+				
+				
+				</th></tr>
+
+				{{#each listgamestoload}}
+					<tr>
+					<td>
+					<span class="gametoload" id="{{scoreId}}">{{gameName}}</span>
+					</td>
+					</tr>						
+				{{/each}}
+			</table>
+		</div>
+
+</template>
+<template name="scoring">
+
+			<table class='scoretable'>
+			<tr>
+				<th></th>
+				{{#each getPlayerNames}}
+					<th class='cell'><div contenteditable="true" class='playername' id="playername{{number}}">{{name}}</div>
+					</th>
+				{{/each}}
+			</tr>
+			
+			
+			{{#each getScores}}
+			<tr>
+				<td >
+					Round {{this.round}}
+					W{{this.winner}}
+					R{{this.risktaker}}
+				</td>
+				 {{#each this.score}}
+				 <td class='cell'>
+					{{this}}
+				 </td>
+				 {{/each}}
+			</tr>
+			<tr class='sum'>
+				<td></td>
+				{{#each playerSum this.round }}
+				<td >Sum: {{this}}
+				</td>
+				{{/each}}
+			</tr>
+			{{/each}}		
+	<tr>
+		<td>
+			<div class="scoreboardinput" id='addScores'><input type="button" value="lagg till" class="addData"> 
+			<span>Hand score: </span><input type="text" id="handscore" class="score" maxlength=4><img src='/mahjongscorecard_thumb.png' id='scorecard' class='scorecard'/></div>
+		</td>
+		{{#each getPlayerNames}}
+			<td class='cell'>
+				<div class="scoreboardinput">
+					<input type="radio" id='winner{{number}}' name="winner" value="winner" class="radiobutton">winner
+					<input type="radio" id='risktaker{{number}}' name="risktaker" value="risktaker" class="radiobutton">risktaker
+					<div id="player{{number}}score" class="score"> 0 </div>
+				</div>
+			</td>
+		{{/each}}
+	</tr>
+	</table>
+</template>
+<template name="scorecard">
+		<div class="imgframe">
+			<img src="/mahjongscorecard_1024.png"  usemap="#pointpicker" class='scorecard'/>
+			<map name="pointpicker" id="pointpicker">
+			<area points='1'  class='pickpoints' id='PureDoubleChow'   shape="rect" coords="149,129,225,151" />
+			<area points='1'  class='pickpoints'  id='MixedDoubleChow'   shape="rect" coords="149,152,225,175" />
+			<area  points="1" class='pickpoints' id="TwoTerminalChows" shape="rect" coords="150,217,224,256" />
+			<area  points="1" class='pickpoints' id="PungofTerminalsorHonors" shape="rect" coords="150,258,224,303" />
+			<area  points="1" class='pickpoints' id="MeldedKong" shape="rect" coords="150,305,224,332" />
+			<area  points="1" class='pickpoints' id="OneVoidedSuit" shape="rect" coords="150,360,224,373" />
+			<area  points="1" class='pickpoints' id="NoHonors" shape="rect" coords="150,374,224,387" />
+			<area  points="1" class='pickpoints' id="EdgeWait" shape="rect" coords="150,463,224,474" />
+			<area  points="1" class='pickpoints' id="ClosedWait" shape="rect" coords="150,475,224,488" />
+			<area  points="1" class='pickpoints' id="SingleWait" shape="rect" coords="150,489,224,503" />
+			<area  points="1" class='pickpoints' id="Self-drawn" shape="rect" coords="150,504,224,517" />
+			<area  points="1" class='pickpoints' id="FlowerTiles" shape="rect" coords="150,519,224,545" />
+
+			<area  class='pickpoints' points='2' id='DragonPung'  shape="rect" coords="225,32,302,51" />
+			<area  class='pickpoints' points='2' id='PrevailingWind'   shape="rect" coords="225,52,302,70" />
+			<area  class='pickpoints' points='2' id='SeatWind'   shape="rect" coords="225,71,302,88" />
+			<area  class="pickpoints" points="2" id="AllChows" shape="rect" coords="226,129,300,175" />
+			<area  class="pickpoints" points="2" id="DoublePong" shape="rect" coords="226,258,301,275" />
+			<area  class="pickpoints" points="2" id="TwoConcealedPongs" shape="rect" coords="226,276,301,303" />
+			<area  class="pickpoints" points="2" id="ConcealedKong" shape="rect" coords="226,305,302,331" />
+			<area  class="pickpoints" points="2" id="AllSimples" shape="rect" coords="226,388,301,423" />
+			<area  class="pickpoints" points="2" id="ConcealedHand" shape="rect" coords="226,462,301,516" />
+			<area  class="pickpoints" points="2" id="Tilehog" shape="rect" coords="226,519,301,544" />
+
+			<area  class="pickpoints" points="4" id="TwoMeldedKongs" shape="rect" coords="304,305,370,330" />
+			<area  class="pickpoints" points="4" id="OutsideHand" shape="rect" coords="304,387,370,423" />
+			<area  class="pickpoints" points="4" id="FullyConcealedHand" shape="rect" coords="304,462,370,501" />
+			<area  class="pickpoints" points="4" id="LastTile" shape="rect" coords="304,502,370,517" />
+			
+			<area class="pickpoints" points="6" id="TwoDragonPungs" shape="rect" coords="373,33,442,87" />
+			<area class="pickpoints" points="6" id="MixedShiftedChows" shape="rect" coords="373,89,442,129" />
+			<area class="pickpoints" points="6" id="AllPungs" shape="rect" coords="373,258,442,303" />
+			<area class="pickpoints" points="6" id="halfFlush" shape="rect" coords="373,360,442,372" />
+			<area class="pickpoints" points="6" id="AllTypes" shape="rect" coords="373,373,442,386" />
+			<area class="pickpoints" points="6" id="MeldedHand" shape="rect" coords="373,462,442,517" />
+
+			<area class="pickpoints" points="8" id="MixedTripleChow" coords="444,129,523,175" />
+			<area class="pickpoints" points="8" id="MixedStraight" shape="rect" coords="444,177,523,214" />
+			<area class="pickpoints" points="8" id="MixedShiftedPungs" shape="rect" coords="444,258,523,303" />
+			<area class="pickpoints" points="8" id="TwoConcealedKongs" shape="rect" coords="444,305,523,331" />
+			<area class="pickpoints" points="8" id="LastTileDraw" shape="rect" coords="444,462,523,474" />
+			<area class="pickpoints" points="8" id="LastTileClaim" shape="rect" coords="444,475,523,486" />
+			<area class="pickpoints" points="8" id="OutwithReplacementTile" shape="rect" coords="444,487,523,504" />
+			<area class="pickpoints" points="8" id="RobbingtheKong" shape="rect" coords="444,505,523,516" />
+			<area class="pickpoints" points="8" id="ReversibleTiles" shape="rect" coords="444,519,523,530" />
+			<area class="pickpoints" points="8" id="ChickenHand" shape="rect" coords="444,531,523,544" />
+
+			<area class="pickpoints" points="12" id="BigThreeWinds" shape="rect" coords="524,33,586,88" />
+			<area class="pickpoints" points="12" id="KnittedStraight" shape="rect" coords="524,177,586,214" />
+			<area class="pickpoints" points="12" id="UpperFour" shape="rect" coords="524,388,586,405" />
+			<area class="pickpoints" points="12" id="LowerFour" shape="rect" coords="524,406,586,423" />
+			<area class="pickpoints" points="12" id="LesserHonorsandKnittedTiles" shape="rect" coords="524,425,586,461" />
+
+			<area class="pickpoints" points="16" id="PureShiftedChows" shape="rect" coords="588,89,659,129" />
+			<area class="pickpoints" points="16" id="PureStraight" shape="rect" coords="588,176,660,215" />
+			<area class="pickpoints" points="16" id="Three-SuitedTerminalChows" shape="rect" coords="588,216,660,256" />
+			<area class="pickpoints" points="16" id="TriplePung" shape="rect" coords="588,256,660,273" />
+			<area class="pickpoints" points="16" id="ThreeConcealedPungs" shape="rect" coords="588,273,660,304" />
+			<area class="pickpoints" points="16" id="AllFives" shape="rect" coords="588,388,660,424" />
+
+			<area class="pickpoints" points="24" id="PureTripleChow" shape="rect" coords="662,129,727,175" />
+			<area class="pickpoints" points="24" id="AllEvenPungs" shape="rect" coords="662,257,727,279" />
+			<area class="pickpoints" points="24" id="PureShiftedPungs" shape="rect" coords="662,281,727,303" />
+			<area class="pickpoints" points="24" id="SevenPairs" shape="rect" coords="662,333,727,359" />
+			<area class="pickpoints" points="24" id="FullFlush" shape="rect" coords="662,360,727,386" />
+			<area class="pickpoints" points="24" id="UpperTiles" shape="rect" coords="662,387,727,399" />
+			<area class="pickpoints" points="24" id="MiddleTiles" shape="rect" coords="662,400,727,411" />
+			<area class="pickpoints" points="24" id="LowerTiles" shape="rect" coords="662,412,727,423" />
+			<area class="pickpoints" points="24" id="GreaterHonorsandKnittedTiles" shape="rect" coords="662,425,727,461" />
+
+			<area class="pickpoints" points="32" id="FourPureShiftedChows" shape="rect" coords="728,88,794,129" />
+			<area class="pickpoints" points="32" id="AllTerminalsandHonors" shape="rect" coords="728,257,794,302" />
+			<area class="pickpoints" points="32" id="ThreeKongs" shape="rect" coords="728,305,794,331" />
+
+			<area class="pickpoints" points="48" id="QuadrupleChow" shape="rect" coords="796,129,876,175" />
+			<area class="pickpoints" points="48" id="FourPureShiftedPungs" shape="rect" coords="796,258,876,303" />
+
+			<area class="pickpoints" points="64" id="LittleFourWinds" shape="rect" coords="876,32,943,54" />
+			<area class="pickpoints" points="64" id="LittleThreeDragons" shape="rect" coords="876,56,943,74" />
+			<area class="pickpoints" points="64" id="AllHonors" shape="rect" coords="876,76,943,86" />
+			<area class="pickpoints" points="64" id="PureTerminalChows" shape="rect" coords="876,216,943,256" />
+			<area class="pickpoints" points="64" id="AllTerminals" shape="rect" coords="876,257,943,270" />
+			<area class="pickpoints" points="64" id="FourConcealedPungs" shape="rect" coords="876,271,943,304" />
+
+			<area class="pickpoints" points="88" id="BigFourWinds" shape="rect" coords="945,33,1018,55" />
+			<area class="pickpoints" points="88" id="BigThreeDragons" shape="rect" coords="945,55,1018,87" />
+			<area class="pickpoints" points="88" id="FourKongs" shape="rect" coords="945,305,1018,331" />
+			<area class="pickpoints" points="88" id="SevenShiftedPairs" shape="rect" coords="945,333,1018,360" />
+			<area class="pickpoints" points="88" id="AllGreen" shape="rect" coords="945,360,1018,371" />
+			<area class="pickpoints" points="88" id="NineGates" shape="rect" coords="945,373,1018,386" />
+			<area class="pickpoints" points="88" id="ThirteenOrphans" shape="rect" coords="945,518,1018,546" />	
+			</map>
+		</div>
+	{{#if showMahjongScorecard}}
+	<div> showing up </div>
+	{{/if}}
+</template>
+
