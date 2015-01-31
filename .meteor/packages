@@ -5,3 +5,9 @@
 
 standard-app-packages
 insecure
+accounts-ui
+accounts-password
+accounts-google
+accounts-facebook
+accounts-github
+accounts-twitter
