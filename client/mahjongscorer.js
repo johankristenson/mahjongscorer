@@ -70,7 +70,7 @@ getLatestRound = function() {
 	var dataarray = Scores.findOne({_id: get_Id()}).data;
 	if (typeof dataarray === 'undefined' ) {
 		console.log('no data defined for _id '+get_Id()+';ie round = 0');
-		return 0;
+		return -1;
 	}
 	var rounds = dataarray.length;
 	return rounds;
@@ -185,7 +185,8 @@ var setScore = function(winnerscore, risktakerscore, playerscore, winnernum, ris
 }
 // distribute the entered score	
 var distributeHandPoints = function(){
-	var basescore=parseInt($('input#handscore').val());
+	//var basescore=parseInt($('input#handscore').val());
+	var basescore=parseInt($('span#handscore').text());
 	// risktaker and winner must be selected first to help score distribution
 	var win = $("input[name=winner]:checked");
 	var risk = $("input[name=risktaker]:checked");
@@ -244,12 +245,13 @@ Template.scorecard.events({
 			if(clicks === 1) {
 				// Single click, add points to base score
 				timer = setTimeout(function() {
-					var basescore = parseInt($('input#handscore').val());
+					//var basescore = parseInt($('input#handscore').val());
+					var basescore = parseInt($('span#handscore').text());
 					if(!isFinite(basescore)) basescore=0;
 					console.log('adding score: %s',$(e.target).attr('points'));
 					basescore += parseInt($(e.target).attr('points'));
 					// set the score box
-					$('input#handscore').val(basescore);
+					$('span#handscore').text(basescore.toString());
 					//add name of points to session variable hand
 					console.log($(e.target).attr('id'));
 					if(isNaN(handParts[$(e.target).attr('id')])){
@@ -275,11 +277,12 @@ Template.scorecard.events({
 				} else {
 					handParts[$(e.target).attr('id')]-=1;
 					console.log("hand: %s",JSON.stringify(handParts));
-					var basescore = parseInt($('input#handscore').val());
+					//var basescore = parseInt($('input#handscore').val());
+					var basescore = parseInt($('span#handscore').text());
 					if(!isFinite(basescore)) basescore=0;
 					console.log('subtracting score: %s',$(e.target).attr('points'));
 					basescore -= parseInt($(e.target).attr('points'));
-					$('input#handscore').val(basescore);
+					$('span#handscore').text(basescore.toString());
 					distributeHandPoints(); // warning this method fails sometimes and aborts execution
 				 	console.log('setting handParts session var, make sure code does not bug out prior to this. handParts: %', JSON.stringify(handParts));
 					Session.set('handParts', handParts);	
@@ -291,11 +294,12 @@ Template.scorecard.events({
 				alert('you cannot remove points that have not been added previously');
 			} else {
 				handParts[$(e.target).attr('id')]-=1;
-				var basescore = parseInt($('input#handscore').val());
+				//var basescore = parseInt($('input#handscore').val());
+				var basescore = parseInt($('span#handscore').text());
 				if(!isFinite(basescore)) basescore=0;
 				console.log('subtracting score: %s',$(e.target).attr('points'));
 				basescore -= parseInt($(e.target).attr('points'));
-				$('input#handscore').val(basescore);
+				$('span#handscore').text(basescore.toString());
 				distributeHandPoints(); // warning this method fails sometimes and aborts execution
 			 	console.log('setting handParts session var, make sure code does not bug out prior to this. handParts: %', JSON.stringify(handParts));
 				Session.set('handParts', handParts);	
@@ -314,7 +318,11 @@ Template.scorecard.events({
 	}
 });
 
-
+Template.outer.helpers({
+	showScoreboard: function(){
+		return getLatestRound()>=0;		
+	}
+});
 var risktakerNumTrigger = -1;
 /// return array of players and their start order
 Template.scoring.helpers({
@@ -436,7 +444,7 @@ Template.scoring.events({
 			$("input[name=risktaker]").prop('checked', false);
 			Session.set('handParts',{});
 			// reset scores to 0 for active hand
-			$('input#handscore').val(0);
+			$('span#handscore').text('0');
 			setScore(0,0,0,0,0);
 		} else {
 			console.log('error : score must balance. ('+totalScore+') does not.');

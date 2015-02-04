@@ -3,33 +3,37 @@
 </head>
 
 <body>
-	<div class="outer">
-
-		{{> loadgames}}
-		
-		{{> scoring}}
-
-		{{> scorecard}}
+	<div class="outer colorbg0">
+		{{> outer}}
 	{{> loginButtons}}
 	</div>
 
 </body>
+<template name="outer">
+	{{> loadgames}}
+	
+	{{#if showScoreboard}}
+		{{> scoring}}
+		{{> scorecard}}
+	{{/if}}
+</template>
+
 <template name="loadgames">
 	<table><tr>
-	<td><div class='menu' id='new_game' >New game
+	<td><div class='menu colorbg1' id='new_game' >New game
 		<button type="button" id='but1' class="noofplayers">2</button><button type="button" class="noofplayers">3</button><button type="button" class="noofplayers" >4</button><button type="button" class="noofplayers">5</button>
 		</div>
 		</td>
-		<td><div class='menu' id='load_game' >Load game</div></td>
+		<td><div class='menu colorbg1' id='load_game' >Load game</div></td>
 		<td>
 		{{#if hasActiveScoreboard}}	
-			<div class='info'  contenteditable="true" >{{currentgame}}</div>
+			<div class='info colorbg2'  contenteditable="true" >{{currentgame}}</div>
 		{{else}}
-			<div class='info' >{{currentgame}}</div>		
+			<div class='info colorbg2' >{{currentgame}}</div>		
 		{{/if}}
 		</td>
 	</tr></table>
-		<div class="gamenames">
+		<div class="gamenames colorbg3">
 			<table>
 				<tr><th class="tableheaderrow">
 					<table><tr>
@@ -51,6 +55,7 @@
 		</div>
 
 </template>
+
 <template name="scoring">
 
 			<table class='scoretable'>
@@ -76,7 +81,7 @@
 				 </td>
 				 {{/each}}
 			</tr>
-			<tr class='sum'>
+			<tr class='colorbg5'>
 				<td></td>
 				{{#each playerSum this.round }}
 				<td >Sum: {{this}}
@@ -86,8 +91,13 @@
 			{{/each}}		
 	<tr>
 		<td>
-			<div class="scoreboardinput" id='addScores'><input type="button" value="lagg till" class="addData"> 
-			<span>Hand score: </span><input type="text" id="handscore" class="score" maxlength=4><img src='/mahjongscorecard_thumb.png' id='scorecard' class='scorecard'/></div>
+			<div class="scoreboardinput">
+				<div>Hand:<span id="handscore" class="score ">0</span> </div>
+				<!--<input type="text" id="handscore" class="score addDataBox" maxlength=4> -->
+				
+				<input type="button" value="lagg till" class="addData addDataBox"> 
+				<img src='/mahjongscorecard_thumb.png' id='scorecard' class='addDataBox scorecard'/>
+			</div>
 		</td>
 		{{#each getPlayerNames}}
 			<td class='cell'>
