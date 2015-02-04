@@ -38,6 +38,66 @@ Meteor.autorun(function() {
 // save reference to be able to use stop and ready
 Meteor.subscribe('gameIds',true);
 
+function FormatNumberLength(num, length) {
+	var r = "" + num;
+	while (r.length < length) {
+		r = "0" + r;
+	}
+	return r;
+};
+
+getGameName = function(numPlayers){
+	// change this later
+	var currentdate = new Date();
+	var datetime = numPlayers+" player game from " + FormatNumberLength(currentdate.getFullYear(),2)+'-'+ FormatNumberLength(currentdate.getMonth()+1,2) +'-'+ FormatNumberLength(currentdate.getDate(),2) + " @ "
+        + FormatNumberLength(currentdate.getHours(),2) + ":"
+        + FormatNumberLength(currentdate.getMinutes(),2) + ":"
+        + FormatNumberLength(currentdate.getSeconds(),2);
+	return datetime;
+};
+
+get_Id = function() {
+	var s= Scores.findOne({players:{$gt:''}});
+	if (typeof s !== 'undefined'){
+		return s._id;
+	} else {
+		console.log("No game score in progress " );
+		return undefined;
+	}
+};
+
+getLatestRound = function() {
+	var dataarray = Scores.findOne({_id: get_Id()}).data;
+	if (typeof dataarray === 'undefined' ) {
+		console.log('no data defined for _id '+get_Id()+';ie round = 0');
+		return 0;
+	}
+	var rounds = dataarray.length;
+	return rounds;
+};
+
+newScoreboard = function (numPlayers){
+	var currentdate = new Date();
+	var gid = "" + currentdate.getDate()
+		+ (currentdate.getMonth()+1)  +
+		+ currentdate.getFullYear() +
+		+ currentdate.getHours() +
+		+ currentdate.getMinutes() +
+		+ currentdate.getSeconds();
+	var gname = getGameName(numPlayers);
+	// todo, get sfrom html textboxes
+	var gplayers = ["Johan Kristenson", "Daniel Udd","Oscar Lindberg","Thomas Krantz","Erik Hemberg","Martin Hemberg", "Klaus Nolås"].sort(function() {return .5 - Math.random();}).slice(0,numPlayers);
+	// unsubscribe to old scoreboard and subscribe to new
+	Meteor.subscribe('scores');
+	g_id = Scores.insert({gameName: gname, players:gplayers, data:[]}, function(err, id){console.log("error insert: id of scores.insert: "+id+"   "+err);});
+	Games.insert({gameName: gname, scoreId:g_id},function(err, id){console.log("error insert: id of Games.insert: "+id+"   "+err);});
+	// change session variable to trigger subscription change using Meteor.autorun
+	Session.set("SubscribeToId",g_id);
+	
+	console.log("inserting gameName:"+gname+", players: "+gplayers+" _id: "+g_id);
+	//listOngoingGameIds();
+};
+
 Template.loadgames.helpers({
 	hasActiveScoreboard: function() {
 		return Scores.find({}).count()==1;
@@ -61,19 +121,200 @@ Template.loadgames.helpers({
 		return Games.find({},{scoreId:1,gameName:1});
 	}
 });
-
-
-/*	Template.scoring.getPlayerNum = function() {
-	var ret = [1,2,3,4,5];
-	// no scoreboard
-	if (typeof Scores === 'undefined' || typeof Scores.findOne() === 'undefined') {
-		return 0;
+Session.setDefault('handParts',{});
+Template.loadgames.events({
+	'click button.noofplayers': function(event){
+		var clickedButton = event.currentTarget;
+		var noOfPlayers = clickedButton.innerHTML;
+		if(noOfPlayers >=2 && noOfPlayers<=5){
+			newScoreboard(noOfPlayers);
+		} else {
+			console.log("error: cannot set players to less than 2 or more than 5");
+		}		
+	},
+	'click DIV#load_game.menu': function(e){
+		$('.gamenames').show();
+	},
+	'click th.tableheaderclose': function(e){
+		// hide the game list menu
+		$('.gamenames').hide();	
+	},
+	'click span.gametoload':function(e){
+		// hide the game list menu after clicking on a game to load
+		// id of object was set to be same as _id of game document in mongo collection.
+		myid = $(e.target).attr('id');
+		var id = myid;
+		console.log(id);
+		if(id){
+			// change session variable to trigger subscription change using Meteor.autorun
+			Session.set("SubscribeToId",id);
+			console.log("trying to subscribe to "+id);
+			//var gamename = $(e.target).children("span").html();
+			var gamename = $(e.target).html();
+		//	alert(gamename);
+			// set info box to display loaded scoreboard games name
+			$('.info').html(gamename);
+		}
+		// hide the game list
+		$('.gamenames').hide();	
+	},
+	'blur div.info': function(e, t){
+		var str = $(e.target).html();
+		var scoreId = Scores.findOne()._id;
+		//console.log('score id '+scoreId);
+		var gameId = Games.findOne({scoreId:scoreId})._id;
+		Games.update({_id:gameId},{$set:{gameName:str}});
+		Scores.update({_id:scoreId},{$set:{gameName:str}}); // todo. remove gameName field from Scores?		
 	}
-	var p = Scores.findOne({});
-	ret = ret.slice(0, p.players.length);
-	console.log("numplayers: "+ret.length);
-	return ret;
-};*/
+});
+
+var setScore = function(winnerscore, risktakerscore, playerscore, winnernum, risktakernum){
+	var numPlayers = Scores.findOne({}).players.length;
+	for(var i =1;i<=numPlayers;i++){
+		console.log("distributing score, looping. i = "+i);
+		var givescore='';
+		if(winnernum==i) {
+			givescore= winnerscore.toString();
+		} else if(risktakernum==i) {
+			givescore= risktakerscore.toString();
+		} else {
+			givescore= playerscore.toString();
+		}
+		$("div#player"+i.toString()+"score").text(givescore);
+	}
+}
+// distribute the entered score	
+var distributeHandPoints = function(){
+	var basescore=parseInt($('input#handscore').val());
+	// risktaker and winner must be selected first to help score distribution
+	var win = $("input[name=winner]:checked");
+	var risk = $("input[name=risktaker]:checked");
+	if((basescore>0 || basescore<0) && win!=='undefined' && risk!=='undefined'){
+		console.log('distributing base score: %s',basescore);
+		var winnernum = win.attr("id").slice(-1);
+		var risktakernum = risk.attr("id").slice(-1);
+		var winnerscore=0;
+		var risktakerscore=0;			
+		var playerscore=0;
+		var numPlayers = Scores.findOne({}).players.length;
+		if (risktakernum==winnernum) {
+			if (basescore>=0) {
+				// selfdraw
+				winnerscore= (8+basescore)*(numPlayers-1);
+				playerscore= -(8+basescore);
+			} else {
+				// penalty. "winner" is penalized for wrong mahjong or similar.
+				winnerscore= (basescore)*(numPlayers-1);
+				playerscore= -(basescore);
+			}
+		} else {
+			// normal scoring hand. no selfdraw or false mahjong.
+			winnerscore = basescore + 8*(numPlayers-1);
+			risktakerscore= -(8+basescore);
+			playerscore= -8;
+		}				
+
+		setScore(winnerscore,risktakerscore,playerscore, winnernum, risktakernum);
+	}
+};
+
+Template.scorecard.helpers({
+	showmahjongscorecard: function () {
+		return Session.get("showMahjongScorecard")==true;
+	}
+});
+var DELAY=500,clicks=0; timer=null;
+//var handParts={};
+Template.scorecard.events({
+	'click .onepoint': function (e,templ) {
+		// one pointers can be cliked more than once to increase total points. 
+		// right click decreases points, left click increases (up to 8 clicks then back to zero)
+		console.log('disable blur() for this area unless it is clicked again');
+		console.log('"'+e.target+'"');			
+	},
+	'click .pickpoints': function (e,templ) {
+		console.log('add points if left click, remove points if right click');
+		console.log('"'+e.target+'"');		
+/* left click */
+		var handParts=Session.get('handParts');
+		if(typeof(handParts)==='undefined') handParts={};
+		if(e.button==0){
+			clicks++;
+			console.log('clicks: %i',clicks);
+			if(clicks === 1) {
+				// Single click, add points to base score
+				timer = setTimeout(function() {
+					var basescore = parseInt($('input#handscore').val());
+					if(!isFinite(basescore)) basescore=0;
+					console.log('adding score: %s',$(e.target).attr('points'));
+					basescore += parseInt($(e.target).attr('points'));
+					// set the score box
+					$('input#handscore').val(basescore);
+					//add name of points to session variable hand
+					console.log($(e.target).attr('id'));
+					if(isNaN(handParts[$(e.target).attr('id')])){
+						handParts[$(e.target).attr('id')]=1;
+					} else {
+						handParts[$(e.target).attr('id')]+=1;
+					}
+					console.log("hand: %s",JSON.stringify(handParts));
+					// distribute the score of the hand to winner and losers
+					clicks = 0;             //after action performed, reset counter
+					distributeHandPoints();
+				 	console.log('setting handParts session var, make sure code does not bug out prior to this. handParts: %', JSON.stringify(handParts));
+					Session.set('handParts', handParts);	
+				}, DELAY);
+			} else {
+				// double click, subtract points from base scores
+				clearTimeout(timer);    //prevent single-click action
+				//check if these points were added previously, if so remove 1
+				clicks = 0;             //after action performed, reset counter
+
+				if(isNaN(handParts[$(e.target).attr('id')]) || handParts[$(e.target).attr('id')]<=0){
+					alert('you cannot remove points that have not been added previously');
+				} else {
+					handParts[$(e.target).attr('id')]-=1;
+					console.log("hand: %s",JSON.stringify(handParts));
+					var basescore = parseInt($('input#handscore').val());
+					if(!isFinite(basescore)) basescore=0;
+					console.log('subtracting score: %s',$(e.target).attr('points'));
+					basescore -= parseInt($(e.target).attr('points'));
+					$('input#handscore').val(basescore);
+					distributeHandPoints(); // warning this method fails sometimes and aborts execution
+				 	console.log('setting handParts session var, make sure code does not bug out prior to this. handParts: %', JSON.stringify(handParts));
+					Session.set('handParts', handParts);	
+				}
+			}						
+		} else {
+			//check if these points were added previously, if so remove 1
+			if(isNaN(handParts[$(e.target).attr('id')]) || handParts[$(e.target).attr('id')]<=0 ) {
+				alert('you cannot remove points that have not been added previously');
+			} else {
+				handParts[$(e.target).attr('id')]-=1;
+				var basescore = parseInt($('input#handscore').val());
+				if(!isFinite(basescore)) basescore=0;
+				console.log('subtracting score: %s',$(e.target).attr('points'));
+				basescore -= parseInt($(e.target).attr('points'));
+				$('input#handscore').val(basescore);
+				distributeHandPoints(); // warning this method fails sometimes and aborts execution
+			 	console.log('setting handParts session var, make sure code does not bug out prior to this. handParts: %', JSON.stringify(handParts));
+				Session.set('handParts', handParts);	
+			} 
+		}
+	},
+	'touchstart .pickpoints':function(e,templ){
+		console.log('touch event on pickpoints class');
+	},
+// highlight points by hovering
+	'mouseover area.pickpoints':function(e,templ) {
+		$(e.target).focus();
+	},
+	'mouseout area.pickpoints':function(e,templ) {
+		$(e.target).blur();
+	}
+});
+
+
 var risktakerNumTrigger = -1;
 /// return array of players and their start order
 Template.scoring.helpers({
@@ -139,158 +380,6 @@ Template.scoring.helpers({
 	}
 });
 
-function FormatNumberLength(num, length) {
-	var r = "" + num;
-	while (r.length < length) {
-		r = "0" + r;
-	}
-	return r;
-};
-
-getGameName = function(numPlayers){
-	// change this later
-	var currentdate = new Date();
-	var datetime = numPlayers+" player game from " + FormatNumberLength(currentdate.getFullYear(),2)+'-'+ FormatNumberLength(currentdate.getMonth()+1,2) +'-'+ FormatNumberLength(currentdate.getDate(),2) + " @ "
-        + FormatNumberLength(currentdate.getHours(),2) + ":"
-        + FormatNumberLength(currentdate.getMinutes(),2) + ":"
-        + FormatNumberLength(currentdate.getSeconds(),2);
-	return datetime;
-};
-
-get_Id = function() {
-	var s= Scores.findOne({players:{$gt:''}});
-	if (typeof s !== 'undefined'){
-		return s._id;
-	} else {
-		console.log("No game score in progress " );
-		return undefined;
-	}
-};
-
-getLatestRound = function() {
-	var dataarray = Scores.findOne({_id: get_Id()}).data;
-	if (typeof dataarray === 'undefined' ) {
-		console.log('no data defined for _id '+get_Id()+';ie round = 0');
-		return 0;
-	}
-	var rounds = dataarray.length;
-	return rounds;
-};
-
-newScoreboard = function (numPlayers){
-	var currentdate = new Date();
-	var gid = "" + currentdate.getDate()
-		+ (currentdate.getMonth()+1)  +
-		+ currentdate.getFullYear() +
-		+ currentdate.getHours() +
-		+ currentdate.getMinutes() +
-		+ currentdate.getSeconds();
-	var gname = getGameName(numPlayers);
-	// todo, get sfrom html textboxes
-	var gplayers = ["Johan Kristenson", "Daniel Udd","Oscar Lindberg","Thomas Krantz","Erik Hemberg","Martin Hemberg", "Klaus Nolås"].sort(function() {return .5 - Math.random();}).slice(0,numPlayers);
-	// unsubscribe to old scoreboard and subscribe to new
-	Meteor.subscribe('scores');
-	g_id = Scores.insert({gameName: gname, players:gplayers, data:[]}, function(err, id){console.log("error insert: id of scores.insert: "+id+"   "+err);});
-	Games.insert({gameName: gname, scoreId:g_id},function(err, id){console.log("error insert: id of Games.insert: "+id+"   "+err);});
-	// change session variable to trigger subscription change using Meteor.autorun
-	Session.set("SubscribeToId",g_id);
-	
-	console.log("inserting gameName:"+gname+", players: "+gplayers+" _id: "+g_id);
-	//listOngoingGameIds();
-};
-
-Template.loadgames.events({
-	'click button.noofplayers': function(event){
-		var clickedButton = event.currentTarget;
-		var noOfPlayers = clickedButton.innerHTML;
-		if(noOfPlayers >=2 && noOfPlayers<=5){
-			newScoreboard(noOfPlayers);
-		} else {
-			console.log("error: cannot set players to less than 2 or more than 5");
-		}		
-	},
-	'click DIV#load_game.menu': function(e){
-		$('.gamenames').show();
-	},
-	'click th.tableheaderclose': function(e){
-		// hide the game list menu
-		$('.gamenames').hide();	
-	},
-	'click span.gametoload':function(e){
-		// hide the game list menu after clicking on a game to load
-		// id of object was set to be same as _id of game document in mongo collection.
-		myid = $(e.target).attr('id');
-		var id = myid;
-		console.log(id);
-		if(id){
-			// change session variable to trigger subscription change using Meteor.autorun
-			Session.set("SubscribeToId",id);
-			console.log("trying to subscribe to "+id);
-			//var gamename = $(e.target).children("span").html();
-			var gamename = $(e.target).html();
-		//	alert(gamename);
-			// set info box to display loaded scoreboard games name
-			$('.info').html(gamename);
-		}
-		// hide the game list
-		$('.gamenames').hide();	
-	},
-	'blur div.info': function(e, t){
-		var str = $(e.target).html();
-		var scoreId = Scores.findOne()._id;
-		//console.log('score id '+scoreId);
-		var gameId = Games.findOne({scoreId:scoreId})._id;
-		Games.update({_id:gameId},{$set:{gameName:str}});
-		Scores.update({_id:scoreId},{$set:{gameName:str}}); // todo. remove gameName field from Scores?		
-	}
-});
-
-// distribute the entered score	
-var distributeHandPoints = function(){
-	var basescore=parseInt($('input#handscore').val());
-	// risktaker and winner must be selected first to help score distribution
-	var win = $("input[name=winner]:checked");
-	var risk = $("input[name=risktaker]:checked");
-	if((basescore>0 || basescore<0) && win!=='undefined' && risk!=='undefined'){
-		console.log('distributing base score: %s',basescore);
-		var winnernum = win.attr("id").slice(-1);
-		var risktakernum = risk.attr("id").slice(-1);
-		var winnerscore=0;
-		var risktakerscore=0;			
-		var playerscore=0;
-		var numPlayers = Scores.findOne({}).players.length;
-		if (risktakernum==winnernum) {
-			if (basescore>=0) {
-				// selfdraw
-				winnerscore= (8+basescore)*(numPlayers-1);
-				playerscore= -(8+basescore);
-			} else {
-				// penalty. "winner" is penalized for wrong mahjong or similar.
-				winnerscore= (basescore)*(numPlayers-1);
-				playerscore= -(basescore);
-			}
-		} else {
-			// normal scoring hand. no selfdraw or false mahjong.
-			winnerscore = basescore + 8*(numPlayers-1);
-			risktakerscore= -(8+basescore);
-			playerscore= -8;
-		}				
-
-		for(var i =1;i<=numPlayers;i++){
-			console.log("distributing score, looping. i = "+i);
-			var givescore='';
-			if(winnernum==i) {
-				givescore= winnerscore.toString();
-			} else if(risktakernum==i) {
-				givescore= risktakerscore.toString();
-			} else {
-				givescore= playerscore.toString();
-			}
-			$("div#player"+i.toString()+"score").text(givescore);
-		}
-	}
-};
-
 Template.scoring.events({
 	'blur div.playername':function(e){						
 		var newname = $(e.target).html().trim();
@@ -331,16 +420,24 @@ Template.scoring.events({
 			}
 			var r = getLatestRound();
 			r += 1;
-//				console.log("round "+r);
-//				console.log('document _id :'+get_Id());
-			// add an array of players scores to the data holder
+			var handParts=Session.get('handParts');
+			if(typeof(handParts)==='undefined') {
+				var handParts={};
+			}
+			// add the hand points to the meteor collection Scores
+			console.log('adding the hand scoring to Scores %s', JSON.stringify(handParts));
+				 
 			Scores.update(
 				{ _id: get_Id() },
-				{ $push: {data: { winner: winner, risktaker:risktaker, round:r, score: playerScore  } }}
+				{ $push: {data: { winner: winner, risktaker:risktaker, round:r, score: playerScore ,handParts: handParts } }}
 			);
 			// uncheck radiobuttons
-			$("input[name=winner]:checked").prop('checked', false);
-			$("input[name=risktaker]:checked").prop('checked', false);
+			$("input[name=winner]").prop('checked', false);
+			$("input[name=risktaker]").prop('checked', false);
+			Session.set('handParts',{});
+			// reset scores to 0 for active hand
+			$('input#handscore').val(0);
+			setScore(0,0,0,0,0);
 		} else {
 			console.log('error : score must balance. ('+totalScore+') does not.');
 			alert('score must balance. ('+totalScore+') does not.');
@@ -391,99 +488,4 @@ Template.scoring.events({
 
 });
 
-Template.scorecard.helpers({
-	showmahjongscorecard: function () {
-		return Session.get("showMahjongScorecard")==true;
-	}
-});
-var DELAY=500,clicks=0; timer=null;
-var handParts={};
-Template.scorecard.events({
-	'click .onepoint': function (e,templ) {
-		// one pointers can be cliked more than once to increase total points. 
-		// right click decreases points, left click increases (up to 8 clicks then back to zero)
-		console.log('disable blur() for this area unless it is clicked again');
-		console.log('"'+e.target+'"');			
-	},
-	'click .pickpoints': function (e,templ) {
-		console.log('add points if left click, remove points if right click');
-		console.log('"'+e.target+'"');		
-/* left click */
-		if(e.button==0){
-			clicks++;
-			console.log('clicks: %i',clicks);
-			if(clicks === 1) {
-				// Single click, add points to base score
-				timer = setTimeout(function() {
-					var basescore = parseInt($('input#handscore').val());
-					if(!isFinite(basescore)) basescore=0;
-					console.log('adding score: %s',$(e.target).attr('points'));
-					basescore += parseInt($(e.target).attr('points'));
-					// set the score box
-					$('input#handscore').val(basescore);
-					//add name of points to session variable hand
-					console.log($(e.target).attr('id'));
-					if(isNaN(handParts[$(e.target).attr('id')])){
-						handParts[$(e.target).attr('id')]=1;
-					} else {
-						handParts[$(e.target).attr('id')]+=1;
-					}
-					console.log("hand: %s",JSON.stringify(handParts));
-					// distribute the score of the hand to winner and losers
-					clicks = 0;             //after action performed, reset counter
-					distributeHandPoints();
-				}, DELAY);
-			} else {
-				// double click, subtract points from base scores
-				clearTimeout(timer);    //prevent single-click action
-				//check if these points were added previously, if so remove 1
-				clicks = 0;             //after action performed, reset counter
-
-				if(isNaN(handParts[$(e.target).attr('id')]) || handParts[$(e.target).attr('id')]<=0){
-					alert('you cannot remove points that have not been added previously');
-				} else {
-					handParts[$(e.target).attr('id')]-=1;
-					console.log("hand: %s",JSON.stringify(handParts));
-					var basescore = parseInt($('input#handscore').val());
-					if(!isFinite(basescore)) basescore=0;
-					console.log('subtracting score: %s',$(e.target).attr('points'));
-					basescore -= parseInt($(e.target).attr('points'));
-					$('input#handscore').val(basescore);
-					distributeHandPoints(); // warning this method fails sometimes and aborts execution
-				}
-			}								
-		} else {
-			//check if these points were added previously, if so remove 1
-			if(isNaN(handParts[$(e.target).attr('id')]) || handParts[$(e.target).attr('id')]<=0 ) {
-				alert('you cannot remove points that have not been added previously');
-			} else {
-				handParts[$(e.target).attr('id')]-=1;
-				var basescore = parseInt($('input#handscore').val());
-				if(!isFinite(basescore)) basescore=0;
-				console.log('subtracting score: %s',$(e.target).attr('points'));
-				basescore -= parseInt($(e.target).attr('points'));
-				$('input#handscore').val(basescore);
-				distributeHandPoints(); // warning this method fails sometimes and aborts execution
-			} 
-		}
-	},
-	'touchstart .pickpoints':function(e,templ){
-		console.log('touch event on pickpoints class');
-	},
-// highlight points by hovering
-	'mouseover area.pickpoints':function(e,templ) {
-		$(e.target).focus();
-	},
-	'mouseout area.pickpoints':function(e,templ) {
-		$(e.target).blur();
-	}
-});
-
-/*
-var areas = document.getElementsByTagName( 'area' );
-for( var index = 0; index < areas.length; index++ ) {    
-    areas[index].addEventListener( 'mouseover', function () {this.focus();}, false );
-    areas[index].addEventListener( 'mouseout', function () {this.blur();}, false );
-};
-*/
 

@@ -101,7 +101,9 @@
 	</tr>
 	</table>
 </template>
+
 <template name="scorecard">
+		{{#if showmahjongscorecard}}
 		<div class="imgframe">
 			<img src="/mahjongscorecard_1024.png"  usemap="#pointpicker" class='scorecard'/>
 			<map name="pointpicker" id="pointpicker">
@@ -198,8 +200,6 @@
 			<area class="pickpoints" points="88" id="ThirteenOrphans" shape="rect" coords="945,518,1018,546" />	
 			</map>
 		</div>
-	{{#if showMahjongScorecard}}
-	<div> showing up </div>
-	{{/if}}
+		{{/if}}
 </template>
 
