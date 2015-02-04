@@ -190,31 +190,32 @@ var distributeHandPoints = function(){
 	// risktaker and winner must be selected first to help score distribution
 	var win = $("input[name=winner]:checked");
 	var risk = $("input[name=risktaker]:checked");
-	if((basescore>0 || basescore<0) && win!=='undefined' && risk!=='undefined'){
-		console.log('distributing base score: %s',basescore);
+	if(win!=='undefined' && risk!=='undefined'){
 		var winnernum = win.attr("id").slice(-1);
 		var risktakernum = risk.attr("id").slice(-1);
 		var winnerscore=0;
 		var risktakerscore=0;			
 		var playerscore=0;
 		var numPlayers = Scores.findOne({}).players.length;
-		if (risktakernum==winnernum) {
-			if (basescore>=0) {
-				// selfdraw
-				winnerscore= (8+basescore)*(numPlayers-1);
-				playerscore= -(8+basescore);
+		if(basescore>0 || basescore<0){
+			console.log('distributing base score: %s',basescore);
+			if (risktakernum==winnernum) {
+				if (basescore>=0) {
+					// selfdraw
+					winnerscore= (8+basescore)*(numPlayers-1);
+					playerscore= -(8+basescore);
+				} else {
+					// penalty. "winner" is penalized for wrong mahjong or similar.
+					winnerscore= (basescore)*(numPlayers-1);
+					playerscore= -(basescore);
+				}
 			} else {
-				// penalty. "winner" is penalized for wrong mahjong or similar.
-				winnerscore= (basescore)*(numPlayers-1);
-				playerscore= -(basescore);
-			}
-		} else {
-			// normal scoring hand. no selfdraw or false mahjong.
-			winnerscore = basescore + 8*(numPlayers-1);
-			risktakerscore= -(8+basescore);
-			playerscore= -8;
-		}				
-
+				// normal scoring hand. no selfdraw or false mahjong.
+				winnerscore = basescore + 8*(numPlayers-1);
+				risktakerscore= -(8+basescore);
+				playerscore= -8;
+			}				
+		}
 		setScore(winnerscore,risktakerscore,playerscore, winnernum, risktakernum);
 	}
 };
@@ -249,16 +250,23 @@ Template.scorecard.events({
 					var basescore = parseInt($('span#handscore').text());
 					if(!isFinite(basescore)) basescore=0;
 					console.log('adding score: %s',$(e.target).attr('points'));
-					basescore += parseInt($(e.target).attr('points'));
+					if($(e.target).attr('points')==0) {
+						// reset hand score to 0
+						basescore=0;
+						handParts={};
+					} else {
+						basescore += parseInt($(e.target).attr('points'));
+						if(isNaN(handParts[$(e.target).attr('id')])){
+							handParts[$(e.target).attr('id')]=1;
+						} else {
+							handParts[$(e.target).attr('id')]+=1;
+						}
+					}
 					// set the score box
 					$('span#handscore').text(basescore.toString());
 					//add name of points to session variable hand
 					console.log($(e.target).attr('id'));
-					if(isNaN(handParts[$(e.target).attr('id')])){
-						handParts[$(e.target).attr('id')]=1;
-					} else {
-						handParts[$(e.target).attr('id')]+=1;
-					}
+					
 					console.log("hand: %s",JSON.stringify(handParts));
 					// distribute the score of the hand to winner and losers
 					clicks = 0;             //after action performed, reset counter
