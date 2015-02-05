@@ -76,6 +76,7 @@ getLatestRound = function() {
 	return rounds;
 };
 
+// create new game and scoreboard
 newScoreboard = function (numPlayers){
 	var currentdate = new Date();
 	var gid = "" + currentdate.getDate()
@@ -89,8 +90,11 @@ newScoreboard = function (numPlayers){
 	var gplayers = ["Johan Kristenson", "Daniel Udd","Oscar Lindberg","Thomas Krantz","Erik Hemberg","Martin Hemberg", "Klaus Nolås"].sort(function() {return .5 - Math.random();}).slice(0,numPlayers);
 	// unsubscribe to old scoreboard and subscribe to new
 	Meteor.subscribe('scores');
-	g_id = Scores.insert({gameName: gname, players:gplayers, data:[]}, function(err, id){console.log("error insert: id of scores.insert: "+id+"   "+err);});
-	Games.insert({gameName: gname, scoreId:g_id},function(err, id){console.log("error insert: id of Games.insert: "+id+"   "+err);});
+	// _id of logged in user
+
+	// create a score document and a game document
+	g_id = Scores.insert({gameName: gname, players:gplayers, data:[]}, function(err, id){console.log("error during insert: id of scores.insert: "+id+"   "+err);});
+	Games.insert({gameName: gname, users:[],creator:Meteor.userId(), scoreId:g_id},function(err, id){console.log("error during insert: id of Games.insert: "+id+"   "+err);});
 	// change session variable to trigger subscription change using Meteor.autorun
 	Session.set("SubscribeToId",g_id);
 	
@@ -183,6 +187,24 @@ var setScore = function(winnerscore, risktakerscore, playerscore, winnernum, ris
 		$("div#player"+i.toString()+"score").text(givescore);
 	}
 }
+
+var getPlayerNames = function(){
+		if (typeof Scores === 'undefined' || typeof Scores.findOne() === 'undefined') {
+			return 0;
+		}
+		// get subscribed documents that have players (ie those subscriptions that only have _ids in order to list the games)
+		var ret = Array();
+		var playernames = Scores.findOne({}).players;
+		for (var i =0; i<playernames.length; i++){
+			var entry = { name: playernames[i], number: (i+1) };
+			ret[i] = entry;
+			console.log('added name and number for i='+i+" name= "+playernames[i]);
+		}
+		console.log('array length= '+ret.length);
+		return ret;
+};
+
+var minimumHandPoints = 8;
 // distribute the entered score	
 var distributeHandPoints = function(){
 	//var basescore=parseInt($('input#handscore').val());
@@ -196,26 +218,33 @@ var distributeHandPoints = function(){
 		var winnerscore=0;
 		var risktakerscore=0;			
 		var playerscore=0;
-		var numPlayers = Scores.findOne({}).players.length;
+		var numPlayeifrs = Scores.findOne({}).players.length;
 		if(basescore>0 || basescore<0){
 			console.log('distributing base score: %s',basescore);
 			if (risktakernum==winnernum) {
-				if (basescore>=0) {
+				if (basescore>=minimumHandPoints) {
 					// selfdraw
 					winnerscore= (8+basescore)*(numPlayers-1);
 					playerscore= -(8+basescore);
 				} else {
 					// penalty. "winner" is penalized for wrong mahjong or similar.
-					winnerscore= (basescore)*(numPlayers-1);
-					playerscore= -(basescore);
+					winnerscore= -10*(numPlayers-1);
+					playerscore= 10;
 				}
 			} else {
-				// normal scoring hand. no selfdraw or false mahjong.
-				winnerscore = basescore + 8*(numPlayers-1);
-				risktakerscore= -(8+basescore);
-				playerscore= -8;
+				if (basescore>=minimumHandPoints) {
+					// normal scoring hand. no selfdraw or false mahjong.
+					winnerscore = basescore + 8*(numPlayers-1);
+					risktakerscore= -(8+basescore);
+					playerscore= -8;
+				} else {
+					// penalty. "winner" is penalized for wrong mahjong or similar.
+					winnerscore= -10*(numPlayers-1);
+					playerscore= 10;
+				}					
 			}				
 		}
+		// if score = 0 then it is a a draw not a false mahjong (a chicken hand with 8 points is not 0)
 		setScore(winnerscore,risktakerscore,playerscore, winnernum, risktakernum);
 	}
 };
@@ -331,82 +360,15 @@ Template.outer.helpers({
 		return getLatestRound()>=0;		
 	}
 });
+
 var risktakerNumTrigger = -1;
-/// return array of players and their start order
-Template.scoring.helpers({
-	getPlayerNames: function(){
-		if (typeof Scores === 'undefined' || typeof Scores.findOne() === 'undefined') {
-			return 0;
-		}
-		// get subscribed documents that have players (ie those subscriptions that only have _ids in order to list the games)
-		var ret = Array();
-		var playernames = Scores.findOne({}).players;
-		for (var i =0; i<playernames.length; i++){
-			var entry = { name: playernames[i], number: (i+1) };
-			ret[i] = entry;
-			console.log('added name and number for i='+i+" name= "+playernames[i]);
-		}
-		console.log('array length= '+ret.length);
-		return ret;
-	},
-
-	hasActiveScoreboard: function() {
-		return Scores.find({}).count()==1;
-	},
-	// sum player score for any player
-	// todo. how to access variable in local context using a string.
-	playerSum: function(toRound){
-		// get toRound rounds starting from round 1 (ie index 0)
-		var dataArray = Scores.findOne().data.slice(0,toRound);
-		var numPlayers = dataArray[0].score.length;
-		var total = new Array(numPlayers);
-		var s = new Array(numPlayers);
-		for(var i=0;i < dataArray.length;i++){
-			for(var j=0; j < numPlayers; j++){
-				if(i==0) {
-					total[j]=0;
-				}
-				// score for player (j+1) for round (i+1)
-				s[j]=dataArray[i].score[j];
-				console.log(s[j]);
-				total[j]+= s[j];
-			}
-		}
-		return total;
-	},
-	/// return array of rounds from document in the order they were stored
-	getScores: function () {
-		if(typeof Scores.findOne({_id:get_Id()}) !== 'undefined') {
-			return Scores.findOne({_id:get_Id()}, {'data.$': 1}).data;
-		}
-		return;
-	},
-
-	// cellNumber: -1	=> true for risktakerNumTrigger >=0 (ie, a risktaker has been set)
-	// cellNumber: >=0	=> true for risktakerNumTrigger == cellNumbe (ie, player=risktaker)
-//	Template.scoring.enterScoreEnabled = function(cellNumber) {
-	enterScoreEnabled: function() {
-		return risktakerNumTrigger>=0;
-		/*if(cellNumber >= 0){
-			triggerScoreInput.depend();
-			return cellNumber==risktakerNumTrigger;
- 		} else {
-			return risktakerNumTrigger>=0;
-		}*/
+Template.enterscore.helpers({
+	getPlayerNames:  function(){ 
+		return getPlayerNames();
 	}
 });
 
-Template.scoring.events({
-	'blur div.playername':function(e){						
-		var newname = $(e.target).html().trim();
-		var pid = $(e.target).attr("id");
-		var playerNum = parseInt(pid.slice(-1));			
-		var scoreId = Scores.findOne()._id;
-		// array of player names to be updated
-		playernames = Scores.findOne({}).players;
-		playernames[playerNum-1]=newname;
-		Scores.update({_id:scoreId},{$set:{players:playernames}}); // todo. remove gameName field from Scores?
-	},
+Template.enterscore.events({
 	'click input.addData': function () {
 		console.log("_id for game: "+get_Id());
 		if (Scores.find().count()!=1 ){
@@ -459,18 +421,6 @@ Template.scoring.events({
 			alert('score must balance. ('+totalScore+') does not.');
 		}
 	},
-	'keyup handscore.score': function(e, templ){
-		// remove last entered character if the string is no longer a valid number
-		// enter hand value of winner (negative value in case of falsely declaring mahjong)
-		var str = $(e.target).val();
-		// only allow numbers in the input field
-		if(str!='-' && !isNumber(str) ) {	
-			//console.log('not a nubmer '+str);
-			$(e.target).val(str.substring(0, str.length-1));
-		}
-		// distribute the score
-		distributeHandPoints();
-	},
 	// recalculates scores after selecting both a winner and a risktaker
 	'click input.radiobutton': function(e,templ){
 		console.log('clicked radiobutton:' +$(e.target).val());
@@ -493,6 +443,56 @@ Template.scoring.events({
 	'click img.scorecard': function(e, templ){
 		Session.set("showMahjongScorecard",!Session.get("showMahjongScorecard"));
 		console.log('clicked thumbnail. trigger: %s',Session.get("showMahjongScorecard"));			
+	}
+
+});
+Template.scoring.helpers({
+	getPlayerNames:  function(){ 
+		return getPlayerNames();
+	},
+	hasActiveScoreboard: function() {
+		return Scores.find({}).count()==1;
+	},
+	// sum player score for any player
+	// todo. how to access variable in local context using a string.
+	playerSum: function(toRound){
+		// get toRound rounds starting from round 1 (ie index 0)
+		var dataArray = Scores.findOne().data.slice(0,toRound);
+		var numPlayers = dataArray[0].score.length;
+		var total = new Array(numPlayers);
+		var s = new Array(numPlayers);
+		for(var i=0;i < dataArray.length;i++){
+			for(var j=0; j < numPlayers; j++){
+				if(i==0) {
+					total[j]=0;
+				}
+				// score for player (j+1) for round (i+1)
+				s[j]=dataArray[i].score[j];
+				console.log(s[j]);
+				total[j]+= s[j];
+			}
+		}
+		return total;
+	},
+	/// return array of rounds from document in the order they were stored
+	getScores: function () {
+		if(typeof Scores.findOne({_id:get_Id()}) !== 'undefined') {
+			return Scores.findOne({_id:get_Id()}, {'data.$': 1}).data;
+		}
+		return;
+	}
+});
+
+Template.scoring.events({
+	'blur div.playername':function(e){						
+		var newname = $(e.target).html().trim();
+		var pid = $(e.target).attr("id");
+		var playerNum = parseInt(pid.slice(-1));			
+		var scoreId = Scores.findOne()._id;
+		// array of player names to be updated
+		playernames = Scores.findOne({}).players;
+		playernames[playerNum-1]=newname;
+		Scores.update({_id:scoreId},{$set:{players:playernames}}); // todo. remove gameName field from Scores?
 	},
 	'keyup div.playername': function(e, templ){
 		//var str = $(e.target).val();

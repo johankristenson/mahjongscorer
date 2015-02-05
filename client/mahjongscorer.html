@@ -14,7 +14,9 @@
 	
 	{{#if showScoreboard}}
 		{{> scoring}}
-		{{> scorecard}}
+		{{#if currentUser}}
+			{{> scorecard}}
+		{{/if}}
 	{{/if}}
 </template>
 
@@ -58,60 +60,67 @@
 
 <template name="scoring">
 
-			<table class='scoretable'>
-			<tr>
-				<th></th>
-				{{#each getPlayerNames}}
-					<th class='cell'><div contenteditable="true" class='playername' id="playername{{number}}">{{name}}</div>
-					</th>
-				{{/each}}
-			</tr>
-			
-			
-			{{#each getScores}}
-			<tr>
-				<td >
-					Round {{this.round}}
-					W{{this.winner}}
-					R{{this.risktaker}}
-				</td>
-				 {{#each this.score}}
-				 <td class='cell'>
-					{{this}}
-				 </td>
-				 {{/each}}
-			</tr>
-			<tr class='colorbg5'>
-				<td></td>
-				{{#each playerSum this.round }}
-				<td >Sum: {{this}}
-				</td>
-				{{/each}}
-			</tr>
-			{{/each}}		
+	<table class='scoretable'>
 	<tr>
-		<td>
-			<div class="scoreboardinput">
-				<div>Hand:<span id="handscore" class="score ">0</span> </div>
-				<!--<input type="text" id="handscore" class="score addDataBox" maxlength=4> -->
-				
-				<input type="button" value="lagg till" class="addData addDataBox"> 
-				<img src='/mahjongscorecard_thumb.png' id='scorecard' class='addDataBox scorecard'/>
-			</div>
-		</td>
+		<th></th>
 		{{#each getPlayerNames}}
-			<td class='cell'>
-				<div class="scoreboardinput">
-					<input type="radio" id='winner{{number}}' name="winner" value="winner" class="radiobutton">winner
-					<input type="radio" id='risktaker{{number}}' name="risktaker" value="risktaker" class="radiobutton">risktaker
-					<div id="player{{number}}score" class="score"> 0 </div>
-				</div>
-			</td>
+			<th class='cell'><div contenteditable="true" class='playername' id="playername{{number}}">{{name}}</div>
+			</th>
 		{{/each}}
 	</tr>
+	
+	
+	{{#each getScores}}
+	<tr>
+		<td >
+			Round {{this.round}}
+			W{{this.winner}}
+			R{{this.risktaker}}
+		</td>
+		 {{#each this.score}}
+		 <td class='cell'>
+			{{this}}
+		 </td>
+		 {{/each}}
+	</tr>
+	<tr class='colorbg5'>
+		<td></td>
+		{{#each playerSum this.round }}
+		<td >Sum: {{this}}
+		</td>
+		{{/each}}
+	</tr>
+	{{/each}}
+	<tr>	
+	{{#if currentUser}}
+		{{> enterscore}}
+	{{ else}}
+	<span>you must sign in to add hands to the game</span>	
+	{{/if}}	
+	</tr>	
 	</table>
 </template>
+<template name ="enterscore">
+	<td>
+		<div class="scoreboardinput">
+			<div>Hand:<span id="handscore" class="score ">0</span> </div>
+			<!--<input type="text" id="handscore" class="score addDataBox" maxlength=4> -->
+			
+			<input type="button" value="lagg till" class="addData addDataBox"> 
+			<img src='/mahjongscorecard_thumb.png' id='scorecard' class='addDataBox scorecard'/>
+		</div>
+	</td>
+	{{#each getPlayerNames}}
+		<td class='cell'>
+			<div class="scoreboardinput">
+				<input type="radio" id='winner{{number}}' name="winner" value="winner" class="radiobutton">winner
+				<input type="radio" id='risktaker{{number}}' name="risktaker" value="risktaker" class="radiobutton">risktaker
+				<div id="player{{number}}score" class="score"> 0 </div>
+			</div>
+		</td>
+	{{/each}}
 
+</template>
 <template name="scorecard">
 		{{#if showmahjongscorecard}}
 		<div class="imgframe">
