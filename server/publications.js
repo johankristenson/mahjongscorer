@@ -16,7 +16,29 @@ Meteor.startup(function () {
 		}
 	});
 
+	Meteor.publish('allUsers', function(yes) {
+		if(yes){
+			return Meteor.users.find({}, {fields:{username:1,emails:1}});
+		} else {
+			this.ready();
+		}
+	});
 
+	Meteor.publish("userData", function () {
+	  if (this.userId) {
+	    return Meteor.users.find({});
+	  } else {
+	    this.ready();
+	  }
+	});
+	Meteor.publish("authorization", function (yes) {
+		 // if (this.userId) {
+		if(yes) {
+			return Authorization.find({});
+		} else {
+			return this.stop();
+		}
+	});
 	// publish the games that this users read/write permissions to
 /*	Meteor.publish("userData", function () {
 	  if (this.userId) {

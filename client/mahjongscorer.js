@@ -7,7 +7,7 @@
 // {gameId, gameName, player1:"Oscar", player2:"Thomas K",player3:"johan k",player4:'Daniel U', GameDate: "2014-05-14 10:00", {rounds: {round:1, player1score:-1,player2score:1,player3score:0,player4score:0}, {round:2, player1score:-1,player2score:1,player3score:0,player4score:0} }}
 // {gameId, gameName, players:{"Oscar", "Thomas K","johan k",'Daniel U'}, GameDate: "2014-05-14 10:00", {rounds: {round:1, player1score:-1,player2score:1,player3score:0,player4score:0}, {round:2, player1score:-1,player2score:1,player3score:0,player4score:0} }}
 
-
+// send email to invited players so they know they can join a game.
 
 /*
  * first time game insert
@@ -33,11 +33,14 @@ Meteor.autorun(function() {
 		Meteor.subscribe("scores", Session.get("SubscribeToId"));
 		//Scores.findOne({_id:Session.get("SubscribeToId")});
 	}
+
+
+
 });
-
-// save reference to be able to use stop and ready
-Meteor.subscribe('gameIds',true);
-
+	// save reference to be able to use stop and ready
+	Meteor.subscribe('gameIds',true);
+	Meteor.subscribe("userData");
+	Meteor.subscribe('authorization',true);
 function FormatNumberLength(num, length) {
 	var r = "" + num;
 	while (r.length < length) {
@@ -45,6 +48,7 @@ function FormatNumberLength(num, length) {
 	}
 	return r;
 };
+
 
 getGameName = function(numPlayers){
 	// change this later
@@ -94,7 +98,7 @@ newScoreboard = function (numPlayers){
 
 	// create a score document and a game document
 	g_id = Scores.insert({gameName: gname, players:gplayers, data:[]}, function(err, id){console.log("error during insert: id of scores.insert: "+id+"   "+err);});
-	Games.insert({gameName: gname, users:[],creator:Meteor.userId(), scoreId:g_id},function(err, id){console.log("error during insert: id of Games.insert: "+id+"   "+err);});
+	Games.insert({gameName: gname, creator:Meteor.userId(), scoreId:g_id},function(err, id){console.log("error during insert: id of Games.insert: "+id+"   "+err);});
 	// change session variable to trigger subscription change using Meteor.autorun
 	Session.set("SubscribeToId",g_id);
 	
@@ -117,8 +121,6 @@ Template.loadgames.helpers({
 		} else {
 			return "No active scoreboard. Load a scoreboard or start a new one";
 		}
-		Session.set("showMahjongScorecard",false);
-
 	},
 	// return game names and ids
 	listgamestoload: function() {
@@ -137,6 +139,7 @@ Template.loadgames.events({
 		}		
 	},
 	'click DIV#load_game.menu': function(e){
+		Session.setDefault("showMahjongScorecard",false);
 		$('.gamenames').show();
 	},
 	'click th.tableheaderclose': function(e){
@@ -218,7 +221,7 @@ var distributeHandPoints = function(){
 		var winnerscore=0;
 		var risktakerscore=0;			
 		var playerscore=0;
-		var numPlayeifrs = Scores.findOne({}).players.length;
+		var numPlayers = Scores.findOne({}).players.length;
 		if(basescore>0 || basescore<0){
 			console.log('distributing base score: %s',basescore);
 			if (risktakernum==winnernum) {
@@ -381,7 +384,7 @@ Template.enterscore.events({
 		var totalScore = 0;
 		for(var i =0;i<numPlayers;i++){
 			// ----------------------------------------
-			// add calc of score per player based on hand score and risktaker/winner here.
+			// calc of score per player based on hand score and risktaker/winner.
 			// ----------------------------------------
 			var str = $('div#player'+(i+1)+'score').text();
 			var s = parseInt(str);
@@ -407,7 +410,7 @@ Template.enterscore.events({
 				 
 			Scores.update(
 				{ _id: get_Id() },
-				{ $push: {data: { winner: winner, risktaker:risktaker, round:r, score: playerScore ,handParts: handParts } }}
+				{ $push: {data: { updatedBy:Meteor.userId(), winner: winner, risktaker:risktaker, round:r, score: playerScore ,handParts: handParts } }}
 			);
 			// uncheck radiobuttons
 			$("input[name=winner]").prop('checked', false);
@@ -480,9 +483,15 @@ Template.scoring.helpers({
 			return Scores.findOne({_id:get_Id()}, {'data.$': 1}).data;
 		}
 		return;
+	},
+	// get currentuser. check authorization
+	authorizedUser: function(){
+		var email=Meteor.users.find({_id:Meteor.userId()}).fetch()[0].emails[0].address;
+		// check if current game is in the authorizitaion list for the user
+		var gId = Games.findOne({scoreId:get_Id()})._id;	
+		return Authorization.find({email:email,gameId:gId}).count()>0 || Games.findOne({scoreId:get_Id()}).creator==Meteor.userId();
 	}
 });
-
 Template.scoring.events({
 	'blur div.playername':function(e){						
 		var newname = $(e.target).html().trim();
@@ -499,6 +508,44 @@ Template.scoring.events({
 		console.log('"'+e.charCode+'"');
 		if(e.charCode=='\n') {	
 			// update document
+		}
+	},
+	'click #invite': function(e, templ){
+		// BRING UP MENU WITH REGISTERED USERS
+		// LATER ALSO FOR NOT REGISTERED USERS
+		var c=Meteor.users.find({});
+		var userlist =[];
+		var email='';
+		for(var i=0;i<c.count();i++){
+			var email = c.fetch()[i].emails[0].address;
+			var username = c.fetch()[i].emails[0].address;
+			userlist.push(email);
+		}
+		//JqueryUI, update autocomplete tags for inputbox with id #userlist
+		$( "#userlist" ).autocomplete({	source: userlist });
+	},
+	// add game to  user authorization list
+	'keyup input#userlist': function(e,templ){
+		if(e.keyCode == 13){
+			var email=$('#userlist').val();
+			var scorecardId = get_Id();			
+			var gameId = Games.findOne({scoreId:scorecardId})._id;
+			var a=Authorization.findOne({email:email});
+			console.log('Authorization.findOne({email:"'+email+'"}) :'+a);
+			if(typeof a!=='undefined'){
+				console.log('update to authorization');
+				Authorization.update({_id:a._id},{$addToSet:{gameId:gameId}});
+			} else {
+				console.log('insert to authorization');
+				var aId=Authorization.insert({email:email}, function(err, id){console.log("error during authorization insert: id: "+id+", err:"+err);});
+				Authorization.update({_id:aId},{$addToSet:{gameId:gameId}});
+			}
+
+			console.log('aId:'+aId);
+			//var game = Games.update({scoreId:g_id},{users:[user]}, {upsert:false})
+			//$("#id_of_button").click();
+			// give user access to edit this game.
+			
 		}
 	}
 

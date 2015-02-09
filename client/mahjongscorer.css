@@ -31,6 +31,14 @@ div#login-buttons{
 	position:absolute;
 	z-index: 10;	
 }
+.ui-autocomplete {
+	max-height: 100px;
+	overflow-y: auto;
+	/* prevent horizontal scrollbar */
+	overflow-x: hidden;
+	position:float;
+}
+
 .menu{
 	margin:5px;
 	border: 2px solid;
