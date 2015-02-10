@@ -1,5 +1,6 @@
 ### paswords
-smtp.js
+#git update-index --assume-unchanged server/smtp.js
+#smtp.js
 
 
 #################
