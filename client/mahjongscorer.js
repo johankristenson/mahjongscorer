@@ -541,11 +541,12 @@ Template.scoring.events({
 				Authorization.update({_id:aId},{$addToSet:{gameId:gameId}});
 			}
 
-			console.log('aId:'+aId);
-			//var game = Games.update({scoreId:g_id},{users:[user]}, {upsert:false})
-			//$("#id_of_button").click();
-			// give user access to edit this game.
-			
+			Email.send({
+			  from: "johan@kristenson.se",
+			  to: email,
+			  subject: "You have been added to a mahjong game",
+			  text: "http://mahjongscorer.meteor.com"
+			});			
 		}
 	}
 
