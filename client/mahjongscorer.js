@@ -19,7 +19,6 @@
  * get scores for round r
  * Scores.find({_id:get_Id(), 'data.round':r},{'data.$':1});
 */
-
 var triggerScoreInput = new Deps.Dependency;
 Session.setDefault("showMahjongScorecard",false);
 
@@ -37,10 +36,15 @@ Meteor.autorun(function() {
 
 
 });
-	// save reference to be able to use stop and ready
-	Meteor.subscribe('gameIds',true);
-	Meteor.subscribe("userData");
-	Meteor.subscribe('authorization',true);
+
+    $( "#menu" ).menu({
+      items: "> :not(.ui-widget-header)"
+    });
+
+// save reference to be able to use stop and ready
+Meteor.subscribe('gameIds',true);
+Meteor.subscribe("userData");
+Meteor.subscribe('authorization',true);
 function FormatNumberLength(num, length) {
 	var r = "" + num;
 	while (r.length < length) {
@@ -97,15 +101,21 @@ newScoreboard = function (numPlayers){
 	// _id of logged in user
 
 	// create a score document and a game document
-	g_id = Scores.insert({gameName: gname, players:gplayers, data:[]}, function(err, id){console.log("error during insert: id of scores.insert: "+id+"   "+err);});
-	Games.insert({gameName: gname, creator:Meteor.userId(), scoreId:g_id},function(err, id){console.log("error during insert: id of Games.insert: "+id+"   "+err);});
+	g_id = Scores.insert({gameName: gname, players:gplayers, data:[]}, function(err, id){console.log("insert: id of scores, err: "+id+"   "+err);});
+	Games.insert({gameName: gname, creator:Meteor.userId(), scoreId:g_id},function(err, id){console.log("insert: id of Games, err: "+id+"   "+err);});
 	// change session variable to trigger subscription change using Meteor.autorun
 	Session.set("SubscribeToId",g_id);
 	
 	console.log("inserting gameName:"+gname+", players: "+gplayers+" _id: "+g_id);
 	//listOngoingGameIds();
 };
-
+var authorizedForGame = function(gId){
+		var email=Meteor.users.find({_id:Meteor.userId()}).fetch()[0].emails[0].address;
+		// check if current game is in the authorizitaion list for the user
+		var yes= Authorization.find({email:email,gameId:gId}).count()>0 
+		var yes2= Games.findOne({_id:gId}).creator==Meteor.userId();		
+		return yes || yes2;
+};
 Template.loadgames.helpers({
 	hasActiveScoreboard: function() {
 		return Scores.find({}).count()==1;
@@ -122,9 +132,17 @@ Template.loadgames.helpers({
 			return "No active scoreboard. Load a scoreboard or start a new one";
 		}
 	},
-	// return game names and ids
-	listgamestoload: function() {
-		return Games.find({},{scoreId:1,gameName:1});
+	// return all game names and score ids for games this user has access to
+	listInviteeGames: function() {
+		var email=Meteor.users.find({'_id':Meteor.userId()}).fetch()[0].emails[0].address;
+		var gameIdArray = Authorization.findOne({'email':email}).gameId;
+		var ret = Games.find({'_id':{$in: gameIdArray}},{scoreId:1,gameName:1});
+		return ret;
+	},
+	// return games created by current user
+	listCreatorGames: function() {
+		var ret = Games.find({'creator':Meteor.userId()});
+		return ret;
 	}
 });
 Session.setDefault('handParts',{});
@@ -140,7 +158,7 @@ Template.loadgames.events({
 	},
 	'click DIV#load_game.menu': function(e){
 		Session.setDefault("showMahjongScorecard",false);
-		$('.gamenames').show();
+				$('.gamenames').toggle();
 	},
 	'click th.tableheaderclose': function(e){
 		// hide the game list menu
@@ -360,9 +378,10 @@ Template.scorecard.events({
 
 Template.outer.helpers({
 	showScoreboard: function(){
-		return getLatestRound()>=0;		
+		return Meteor.userId()>'' && getLatestRound()>=0;		
 	}
 });
+
 
 var risktakerNumTrigger = -1;
 Template.enterscore.helpers({
@@ -459,6 +478,7 @@ Template.scoring.helpers({
 	// sum player score for any player
 	// todo. how to access variable in local context using a string.
 	playerSum: function(toRound){
+		if(typeof toRound=='undefined') return 0;
 		// get toRound rounds starting from round 1 (ie index 0)
 		var dataArray = Scores.findOne().data.slice(0,toRound);
 		var numPlayers = dataArray[0].score.length;
@@ -531,7 +551,7 @@ Template.scoring.events({
 			var scorecardId = get_Id();			
 			var gameId = Games.findOne({scoreId:scorecardId})._id;
 			var a=Authorization.findOne({email:email});
-			console.log('Authorization.findOne({email:"'+email+'"}) :'+a);
+
 			if(typeof a!=='undefined'){
 				console.log('update to authorization');
 				Authorization.update({_id:a._id},{$addToSet:{gameId:gameId}});
@@ -540,13 +560,8 @@ Template.scoring.events({
 				var aId=Authorization.insert({email:email}, function(err, id){console.log("error during authorization insert: id: "+id+", err:"+err);});
 				Authorization.update({_id:aId},{$addToSet:{gameId:gameId}});
 			}
-
-			Email.send({
-			  from: "johan@kristenson.se",
-			  to: email,
-			  subject: "You have been added to a mahjong game",
-			  text: "http://mahjongscorer.meteor.com"
-			});			
+			Meteor.call('sendEmailInvite',email);
+			console.log('Sending email authorization to: '+email);
 		}
 	}
 

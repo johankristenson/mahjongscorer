@@ -17,6 +17,7 @@
 			{{> scorecard}}
 		{{/if}}
 	{{/if}}
+
 	{{> loginButtons}}
 </template>
 
@@ -33,28 +34,25 @@
 		{{else}}
 			<div class='info colorbg2' >{{currentgame}}</div>		
 		{{/if}}
+
 		</td>
 	</tr></table>
-		<div class="gamenames colorbg3">
-			<table>
-				<tr><th class="tableheaderrow">
-					<table><tr>
-						<th class="tableheadername">Name</th>
-						<th class="tableheaderclose">X</th>
-					</tr></table>
-				
-				
-				</th></tr>
-
-				{{#each listgamestoload}}
-					<tr>
-					<td>
-					<span class="gametoload" id="{{scoreId}}">{{gameName}}</span>
-					</td>
-					</tr>						
-				{{/each}}
-			</table>
+		
+	<div class="gamenames colorbg3">
+	<ul id="menu">
+		<li class="ui-widget-header">Your Games</li>
+			{{#each listCreatorGames}}
+					<li><span class="gametoload" id="{{this.scoreId}}">{{this.gameName}}</span></li>
+			{{/each}}
+		<li class="ui-widget-header">Invitation games</li>
+			{{#each listInviteeGames}}
+					<li><span class="gametoload" id="{{this.scoreId}}">{{this.gameName}}</span></li>
+			{{/each}}
+		
+	</ul>
 		</div>
+
+	
 
 </template>
 

@@ -31,6 +31,12 @@ div#login-buttons{
 	position:absolute;
 	z-index: 10;	
 }
+
+/* 
+	jquery-UI
+*/
+.ui-menu { width: 200px; }
+.ui-widget-header { padding: 0.2em; }
 .ui-autocomplete {
 	max-height: 100px;
 	overflow-y: auto;
