@@ -32,14 +32,11 @@ Meteor.autorun(function() {
 		Meteor.subscribe("scores", Session.get("SubscribeToId"));
 		//Scores.findOne({_id:Session.get("SubscribeToId")});
 	}
-
-
-
 });
 
-    $( "#menu" ).menu({
-      items: "> :not(.ui-widget-header)"
-    });
+$( "#menu" ).menu({
+items: "> :not(.ui-widget-header)"
+});
 
 // save reference to be able to use stop and ready
 Meteor.subscribe('gameIds',true);
@@ -116,6 +113,22 @@ var authorizedForGame = function(gId){
 		var yes2= Games.findOne({_id:gId}).creator==Meteor.userId();		
 		return yes || yes2;
 };
+
+/* veriy email */
+Template.outer.created = function() {
+  if (Accounts._verifyEmailToken) {
+    Accounts.verifyEmail(Accounts._verifyEmailToken, function(err) {
+      if (err != null) {
+        if (err.message = 'Verify email link expired [403]') {
+          console.log('Sorry this verification link has expired.')
+        }
+      } else {
+        console.log('Thank you! Your email address has been confirmed.')
+      }
+    });
+  }
+};
+
 Template.loadgames.helpers({
 	hasActiveScoreboard: function() {
 		return Scores.find({}).count()==1;
